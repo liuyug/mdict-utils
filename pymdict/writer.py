@@ -52,7 +52,7 @@ class MDictWriter(MDictWriterBase):
                 record_null = record['path']
             else:
                 record_null = (record['path'] + "\0").encode(self._python_encoding)
-                record['size'] += 1
+                record['size'] = len(record_null)
             self._offset_table.append(_OffsetTableEntry(
                 key=key_enc,
                 key_null=key_null,
@@ -81,7 +81,6 @@ class MDictWriter(MDictWriterBase):
         # fill ZERO
         record_pos = outfile.tell()
         outfile.write(struct.pack(record_format, 0, 0, 0, 0))
-        index_pos = outfile.tell()
         outfile.write((struct.pack(index_format, 0, 0)) * len(self._record_blocks))
 
         recordblocks_total_size = 0
@@ -102,7 +101,6 @@ class MDictWriter(MDictWriterBase):
                                   self._num_entries,
                                   self._recordb_index_size,
                                   recordblocks_total_size))
-        outfile.seek(index_pos)
         outfile.write(self._recordb_index)
         outfile.seek(end_pos)
 

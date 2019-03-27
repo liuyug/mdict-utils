@@ -2,7 +2,7 @@
 MDict Tool
 ==========
 
-MDict pack/unpack/list/info tool
+MDict pack/unpack tool
 
 
 Refer MDict read/write:

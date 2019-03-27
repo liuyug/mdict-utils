@@ -29,7 +29,20 @@ def get_keys(source, encoding='utf-8', substyle=False, passcode=None):
     return md.keys()
 
 
+def query(words, source, encoding='utf-8', substyle=False, passcode=None):
+    if source.endswith('.mdx'):
+        md = MDX(source, encoding, substyle, passcode)
+    if source.endswith('.mdd'):
+        md = MDD(source, passcode)
+    words = [word.encode('utf-8') for word in words]
+    for offset, key in md._key_list:
+        for word in words:
+            if word == key:
+                yield '%s [%s]' % (key, offset)
+
+
 def unpack(target, source, encoding='utf-8', substyle=False, passcode=None):
+    target = target or './'
     if not os.path.exists(target):
         os.makedirs(target)
     if source.endswith('.mdx'):
@@ -66,11 +79,11 @@ def unpack(target, source, encoding='utf-8', substyle=False, passcode=None):
             f.write(mdx.header[b'Title'])
             f.close()
     elif source.endswith('.mdd'):
-        mdd = MDD(source, passcode)
-        bar = tqdm(total=len(mdd), unit='rec')
-        datafolder = os.path.join(target, 'mdd')
+        datafolder = os.path.abspath(target)
         if not os.path.exists(datafolder):
             os.makedirs(datafolder)
+        mdd = MDD(source, passcode)
+        bar = tqdm(total=len(mdd), unit='rec')
         for key, value in mdd.items():
             fname = key.decode('utf-8').replace('\\', os.path.sep)
             dfname = datafolder + fname
