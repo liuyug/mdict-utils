@@ -151,9 +151,9 @@ def pack_mdd_file(source):
     source = os.path.abspath(source)
     if os.path.isfile(source):
         size = os.path.getsize(source)
-        key = '/' + os.path.basename(source)
-        if os.sep == '\\':
-            key.replace('\\', '/')
+        key = '\\' + os.path.basename(source)
+        if os.sep != '\\':
+            key = key.replace(os.sep, '\\')
         dictionary.append({
             'key': key,
             'path': source,
@@ -165,9 +165,9 @@ def pack_mdd_file(source):
             for f in files:
                 fpath = os.path.join(root, f)
                 size = os.path.getsize(fpath)
-                key = '/' + os.path.relpath(fpath, relpath)
-                if os.sep == '\\':
-                    key.replace('\\', '/')
+                key = '\\' + os.path.relpath(fpath, relpath)
+                if os.sep != '\\':
+                    key = key.replace(os.sep, '\\')
                 dictionary.append({
                     'key': key,
                     'path': fpath,
