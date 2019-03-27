@@ -35,11 +35,13 @@ class _MdxRecordBlock(_MdxRecordBlockBase):
 
 class MDictWriter(MDictWriterBase):
     def _build_offset_table(self, d):
-        items = sorted(d.items(), key=lambda x: locale.strxfrm(x[0]))
+        """One key own multi entry, so d is list"""
+        items = sorted(d, key=lambda x: locale.strxfrm(x['key']))
 
         self._offset_table = []
         offset = 0
-        for key, record in items:
+        for record in items:
+            key = record['key']
             key_enc = key.encode(self._python_encoding)
             key_null = (key + "\0").encode(self._python_encoding)
             key_len = len(key_enc) // self._encoding_length
@@ -123,36 +125,42 @@ def pack(target, dictionary, title='', description='', is_mdd=False):
 
 
 def pack_mdx_txt(source):
-    dictionary = {}
+    dictionary = []
     with open(source, 'rt') as f:
         key = None
+        content = []
         for line in f.readlines():
             line = line.strip()
             if line == '</>':
+                content = ''.join(content)
+                size = len(content)
+                dictionary.append({
+                    'key': key,
+                    'path': content,
+                    'size': size,
+                })
                 key = None
-                continue
-            if not key:
+                content = []
+            elif not key:
                 key = line
-                continue
-            dictionary[key] = {
-                'path': line,
-                'size': len(line),
-            }
+            else:
+                content.append(line)
     return dictionary
 
 
 def pack_mdd_file(source):
-    dictionary = {}
+    dictionary = []
     source = os.path.abspath(source)
     if os.path.isfile(source):
         size = os.path.getsize(source)
         key = '/' + os.path.basename(source)
         if os.sep == '\\':
             key.replace('\\', '/')
-        dictionary[key] = {
+        dictionary.append({
+            'key': key,
             'path': source,
             'size': size,
-        }
+        })
     else:
         relpath = source
         for root, dirs, files in os.walk(source):
@@ -162,8 +170,9 @@ def pack_mdd_file(source):
                 key = '/' + os.path.relpath(fpath, relpath)
                 if os.sep == '\\':
                     key.replace('\\', '/')
-                dictionary[key] = {
+                dictionary.append({
+                    'key': key,
                     'path': fpath,
                     'size': size,
-                }
+                })
     return dictionary

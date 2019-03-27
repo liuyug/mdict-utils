@@ -8,7 +8,7 @@ from .writer import pack, pack_mdd_file, pack_mdx_txt
 def run():
     parser = argparse.ArgumentParser(prog='pymdict', description='MDict Tools')
     parser.add_argument('FILE', metavar='<MDX/MDD>', help='mdx/mdd file')
-    parser.add_argument('-l', dest='list', action='store_true', help='list mdx/mdd keys.')
+    parser.add_argument('-k', dest='key', action='store_true', help='list mdx/mdd keys.')
     parser.add_argument('-m', dest='meta', action='store_true', help='print mdx/mdd meta information.')
 
     group = parser.add_argument_group('Reader')
@@ -31,31 +31,33 @@ def run():
         'encoding' in meta and print('Encoding: %(encoding)s' % meta)
         print('Creation Date: %(creationdate)s' % meta)
         print('Description: %(description)s' % meta)
-    elif args.list:
+    elif args.key:
         keys = reader.get_keys(args.FILE)
         count = 0
         for key in keys:
             count += 1
             key = key.decode('utf-8')
             print(key)
-        print('-' * 80)
-        print('Total:', count)
     elif args.extract:
         reader.unpack(args.exdir, args.FILE)
     elif args.add:
         is_mdd = args.FILE.endswith('.mdd')
-        dictionary = {}
+        dictionary = []
         for a in args.add:
+            print('Search "%s"...' % a)
             if is_mdd:
-                dictionary.update(pack_mdd_file(a))
+                d = pack_mdd_file(a)
             else:
-                dictionary.update(pack_mdx_txt(a))
+                d = pack_mdx_txt(a)
+            print('\tentry:', len(d))
+            dictionary.extend(d)
         title = ''
         description = ''
         if args.title:
             title = open(args.title, 'rt').read()
         if args.description:
             description = open(args.description, 'rt').read()
+        print('Pack to "%s"' % args.FILE)
         pack(args.FILE, dictionary, title, description, is_mdd=is_mdd)
     else:
         parser.print_help()
