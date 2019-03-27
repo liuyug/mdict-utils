@@ -29,28 +29,25 @@ def get_keys(source, encoding='utf-8', substyle=False, passcode=None):
     return md.keys()
 
 
-def unpack(target, source, encoding='utf-8', substyle=False, passcode=None, sqlite=False):
+def unpack(target, source, encoding='utf-8', substyle=False, passcode=None):
     if not os.path.exists(target):
         os.makedirs(target)
     if source.endswith('.mdx'):
         mdx = MDX(source, encoding, substyle, passcode)
         bar = tqdm(total=len(mdx), unit='rec')
         basename = os.path.basename(source)
-        if sqlite:
-            pass
-        else:
-            output_fname = os.path.join(target, basename + '.txt')
-            tf = open(output_fname, 'wb')
-            for key, value in mdx.items():
-                tf.write(key)
+        output_fname = os.path.join(target, basename + '.txt')
+        tf = open(output_fname, 'wb')
+        for key, value in mdx.items():
+            tf.write(key)
+            tf.write(b'\r\n')
+            tf.write(value)
+            if not value.endswith(b'\n'):
                 tf.write(b'\r\n')
-                tf.write(value)
-                if not value.endswith(b'\n'):
-                    tf.write(b'\r\n')
-                tf.write(b'</>\r\n')
-                bar.update(1)
-            bar.close()
+            tf.write(b'</>\r\n')
+            bar.update(1)
         tf.close()
+        bar.close()
         # write header
         if mdx.header.get(b'StyleSheet'):
             style_fname = os.path.join(target, basename + '.css')
