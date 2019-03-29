@@ -41,7 +41,8 @@ def get_record(md, key, offset):
     num_entries = md._read_number(f)
     assert(num_entries == md._num_entries)
     record_block_info_size = md._read_number(f)
-    record_block_size = md._read_number(f)
+    # record_block_size =
+    md._read_number(f)
 
     # record block info section
     compressed_offset = f.tell() + record_block_info_size

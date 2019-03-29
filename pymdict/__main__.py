@@ -19,19 +19,17 @@ def make_callback(fmt):
 
 
 def run():
-    epilog = 'NOTE: MDict encoding is UTF-8 and format is version 2.0'
+    epilog = ''
     parser = argparse.ArgumentParser(prog='mdict', description=about.description, epilog=epilog)
     parser.add_argument('--version', action='version',
                         version='%%(prog)s version %s - written by %s <%s>' % (
                             about.version, about.author, about.email),
                         help='show version')
-    parser.add_argument('--title', help='Dictionary title file')
-    parser.add_argument('--description', help='Dictionary descritpion file')
     parser.add_argument('-k', dest='key', action='store_true', help='show mdx/mdd keys')
     parser.add_argument('-m', dest='meta', action='store_true', help='show mdx/mdd meta information')
-    parser.add_argument('-q', dest='query', action='store_true', help='query KEY from mdx/mdd')
-    parser.add_argument('--txt-db', action='store_true', help='convert mdx txt to sqlite3 db')
-    parser.add_argument('--db-txt', action='store_true', help='convert sqlite3 db to mdx txt')
+    parser.add_argument('-q', dest='query', metavar='<key>', help='query KEY from mdx/mdd')
+    parser.add_argument('--txt-db', action='store_true', help='convert mdx txt to sqlite3 db. <mdx/mdd> is ".txt"')
+    parser.add_argument('--db-txt', action='store_true', help='convert sqlite3 db to mdx txt. <mdx/mdd> is ".db"')
     parser.add_argument('mdict', metavar='<mdx/mdd>', help='Dictionary MDX/MDD file')
 
     group = parser.add_argument_group('Reader')
@@ -39,9 +37,10 @@ def run():
     group.add_argument('-d', dest='exdir', help='extracted directory')
 
     group = parser.add_argument_group('Writer')
-    group.add_argument('-c', dest='create', action='store_true', help='create mdx/mdd file')
+    group.add_argument('-a', dest='add', metavar='<resource>', action='append', help='add resource file to mdx/mdd file')
+    group.add_argument('--title', metavar='<title>', help='Dictionary title file')
+    group.add_argument('--description', metavar='<description>', help='Dictionary descritpion file')
     group.add_argument('--encoding', metavar='<encoding>', default='utf-8', help='mdx txt file encoding')
-    group.add_argument('resource', nargs='*', help='Dictionary resource directory/file')
 
     args = parser.parse_args()
 
@@ -74,7 +73,7 @@ def run():
         sqlite2txt(args.mdict, callback=make_callback(fmt))
         print()
     elif args.query:
-        qq = reader.query(args.mdict, args.resource)
+        qq = reader.query(args.mdict, args.query)
         for q in qq:
             print(q)
     elif args.extract:
@@ -82,7 +81,7 @@ def run():
     elif args.create:
         is_mdd = args.mdict.endswith('.mdd')
         dictionary = []
-        for resource in args.resource:
+        for resource in args.add:
             fmt = '\rScan "%s": %%s' % resource
             total = 0
             if is_mdd:
