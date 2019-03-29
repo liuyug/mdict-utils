@@ -6,9 +6,10 @@ from tqdm import tqdm
 from .base.readmdict import MDX, MDD
 
 
-def meta(source, encoding='utf-8', substyle=False, passcode=None):
+def meta(source, substyle=False, passcode=None):
     meta = {}
     if source.endswith('.mdx'):
+        encoding = ''
         md = MDX(source, encoding, substyle, passcode)
     if source.endswith('.mdd'):
         md = MDD(source, passcode)
@@ -21,16 +22,18 @@ def meta(source, encoding='utf-8', substyle=False, passcode=None):
     return meta
 
 
-def get_keys(source, encoding='utf-8', substyle=False, passcode=None):
+def get_keys(source, substyle=False, passcode=None):
     if source.endswith('.mdx'):
+        encoding = ''
         md = MDX(source, encoding, substyle, passcode)
     if source.endswith('.mdd'):
         md = MDD(source, passcode)
     return md.keys()
 
 
-def query(words, source, encoding='utf-8', substyle=False, passcode=None):
+def query(words, source, substyle=False, passcode=None):
     if source.endswith('.mdx'):
+        encoding = ''
         md = MDX(source, encoding, substyle, passcode)
     if source.endswith('.mdd'):
         md = MDD(source, passcode)
@@ -41,11 +44,12 @@ def query(words, source, encoding='utf-8', substyle=False, passcode=None):
                 yield '%s [%s]' % (key, offset)
 
 
-def unpack(target, source, encoding='utf-8', substyle=False, passcode=None):
+def unpack(target, source, substyle=False, passcode=None):
     target = target or './'
     if not os.path.exists(target):
         os.makedirs(target)
     if source.endswith('.mdx'):
+        encoding = ''
         mdx = MDX(source, encoding, substyle, passcode)
         bar = tqdm(total=len(mdx), unit='rec')
         basename = os.path.basename(source)
