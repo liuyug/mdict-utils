@@ -91,19 +91,18 @@ def get_record(md, key, offset):
     return record
 
 
-def query(source, words, substyle=False, passcode=None):
+def query(source, word, substyle=False, passcode=None):
     if source.endswith('.mdx'):
         encoding = ''
         md = MDX(source, encoding, substyle, passcode)
     if source.endswith('.mdd'):
         md = MDD(source, passcode)
-    words = [word.encode('utf-8') for word in words]
-    for word in words:
-        record = []
-        for offset, key in md._key_list:
-            if word == key:
-                record.append(get_record(md, key, offset))
-        yield '\n---\n'.join(record)
+    word = word.encode('utf-8')
+    record = []
+    for offset, key in md._key_list:
+        if word == key:
+            record.append(get_record(md, key, offset))
+    return '\n---\n'.join(record)
 
 
 def unpack(target, source, substyle=False, passcode=None):

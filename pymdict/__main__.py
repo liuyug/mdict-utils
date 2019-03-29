@@ -73,9 +73,8 @@ def run():
         sqlite2txt(args.mdict, callback=make_callback(fmt))
         print()
     elif args.query:
-        qq = reader.query(args.mdict, args.query)
-        for q in qq:
-            print(q)
+        record = reader.query(args.mdict, args.query)
+        print(record)
     elif args.extract:
         reader.unpack(args.exdir, args.mdict)
     elif args.create:
