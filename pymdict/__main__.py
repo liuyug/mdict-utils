@@ -74,7 +74,7 @@ def run():
         sqlite2txt(args.mdict, callback=make_callback(fmt))
         print()
     elif args.query:
-        qq = reader.query(args.mdict, args.query)
+        qq = reader.query(args.mdict, args.resource)
         for q in qq:
             print(q)
     elif args.extract:
