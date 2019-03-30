@@ -187,7 +187,7 @@ def txt2sqlite(source, callback=None):
             if not line:
                 continue
             if line == '</>':
-                if not key or content:
+                if not key or not content:
                     raise ValueError('Error at line %s' % count)
                 content = ''.join(content)
                 entries.append((key, content))
@@ -255,9 +255,9 @@ def pack_mdx_txt(source, encoding='utf-8', callback=None):
                 line = f.readline()
                 continue
             if line == b'</>':
-                if not key or content:
-                    raise ValueError('Error at line %s' % count)
                 content = b''.join(content)
+                if not key or not content:
+                    raise ValueError('Error at line %s: %s - %s' % (count, key, content))
                 size = len(content + b'\0')
                 dictionary.append({
                     'key': key.decode(encoding),

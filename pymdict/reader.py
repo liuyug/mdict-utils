@@ -33,7 +33,7 @@ def get_keys(source, substyle=False, passcode=None):
     return md.keys()
 
 
-def get_record(md, key, offset):
+def get_record(md, key, offset, length):
     f = open(md._fname, 'rb')
     f.seek(md._record_block_offset)
 
@@ -72,8 +72,9 @@ def get_record(md, key, offset):
             print("LZO compression support is not available")
             return
         # decompress
-        header = b'\xf0' + struct.pack('>I', decompressed_size)
-        record_block = lzo.decompress(header + block_compressed[8:])
+        # header = b'\xf0' + struct.pack('>I', decompressed_size)
+        # record_block = lzo.decompress(header + block_compressed[8:])
+        record_block = lzo.decompress(block_compressed[8:], initSize=decompressed_size, blockSize=1308672)
     # zlib compression
     elif block_type == b'\x02\x00\x00\x00':
         # decompress
@@ -83,9 +84,11 @@ def get_record(md, key, offset):
     assert(len(record_block) == decompressed_size)
 
     record_start = offset - decompressed_offset
-    record_end = record_start + decompressed_size
-    record_null = record_block[record_start:record_end]
-    record = record_null.strip().decode('utf-8')
+    if length > 0:
+        record_null = record_block[record_start:record_start + length]
+    else:
+        record_null = record_block[record_start:]
+    record = record_null.strip().decode(md._encoding)
 
     f.close()
     return record
@@ -99,9 +102,14 @@ def query(source, word, substyle=False, passcode=None):
         md = MDD(source, passcode)
     word = word.encode('utf-8')
     record = []
-    for offset, key in md._key_list:
+    for x in range(len(md._key_list)):
+        offset, key = md._key_list[x]
         if word == key:
-            record.append(get_record(md, key, offset))
+            if (x + 1) < len(md._key_list):
+                length = md._key_list[x + 1][0] - offset
+            else:
+                length = -1
+            record.append(get_record(md, key, offset, length))
     return '\n---\n'.join(record)
 
 

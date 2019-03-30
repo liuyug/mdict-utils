@@ -5,6 +5,7 @@ from . import about
 from . import reader
 from .writer import pack, pack_mdd_file, pack_mdx_txt, pack_mdx_sqlite3,  \
     txt2sqlite, sqlite2txt
+from .utils import ElapsedTimer
 
 
 total = 0
@@ -47,14 +48,15 @@ def run():
     global total
 
     if args.meta:
-        meta = reader.meta(args.mdict)
-        print('Title: %(title)s' % meta)
-        print('Engine Version: %(generatedbyengineversion)s' % meta)
-        print('Record: %(record)s' % meta)
-        print('Format: %(format)s' % meta)
-        'encoding' in meta and print('Encoding: %(encoding)s' % meta)
-        print('Creation Date: %(creationdate)s' % meta)
-        print('Description: %(description)s' % meta)
+        with ElapsedTimer(verbose=True):
+            meta = reader.meta(args.mdict)
+            print('Title: %(title)s' % meta)
+            print('Engine Version: %(generatedbyengineversion)s' % meta)
+            print('Record: %(record)s' % meta)
+            print('Format: %(format)s' % meta)
+            'encoding' in meta and print('Encoding: %(encoding)s' % meta)
+            'creationdate' in meta and print('Creation Date: %(creationdate)s' % meta)
+            print('Description: %(description)s' % meta)
     elif args.key:
         keys = reader.get_keys(args.mdict)
         count = 0
@@ -63,43 +65,48 @@ def run():
             key = key.decode('utf-8')
             print(key)
     elif args.txt_db:
-        total = 0
-        fmt = '\rConvert "%s": %%s' % args.mdict
-        txt2sqlite(args.mdict, callback=make_callback(fmt))
-        print()
-    elif args.db_txt:
-        total = 0
-        fmt = '\rConvert "%s": %%s' % args.mdict
-        sqlite2txt(args.mdict, callback=make_callback(fmt))
-        print()
-    elif args.query:
-        record = reader.query(args.mdict, args.query)
-        print(record)
-    elif args.extract:
-        reader.unpack(args.exdir, args.mdict)
-    elif args.add:
-        is_mdd = args.mdict.endswith('.mdd')
-        dictionary = []
-        for resource in args.add:
-            fmt = '\rScan "%s": %%s' % resource
+        with ElapsedTimer(verbose=True):
             total = 0
-            if is_mdd:
-                d = pack_mdd_file(resource, callback=make_callback(fmt))
-            elif resource.endswith('.db'):
-                d = pack_mdx_sqlite3(resource, encoding=args.encoding, callback=make_callback(fmt))
-            else:
-                d = pack_mdx_txt(resource, encoding=args.encoding, callback=make_callback(fmt))
-            dictionary.extend(d)
+            fmt = '\rConvert "%s": %%s' % args.mdict
+            txt2sqlite(args.mdict, callback=make_callback(fmt))
             print()
-        print()
-        title = ''
-        description = ''
-        if args.title:
-            title = open(args.title, 'rt').read()
-        if args.description:
-            description = open(args.description, 'rt').read()
-        print('Pack to "%s"' % args.mdict)
-        pack(args.mdict, dictionary, title, description, encoding=args.encoding, is_mdd=is_mdd)
+    elif args.db_txt:
+        with ElapsedTimer(verbose=True):
+            total = 0
+            fmt = '\rConvert "%s": %%s' % args.mdict
+            sqlite2txt(args.mdict, callback=make_callback(fmt))
+            print()
+    elif args.query:
+        with ElapsedTimer(verbose=True):
+            record = reader.query(args.mdict, args.query)
+            print(record)
+    elif args.extract:
+        with ElapsedTimer(verbose=True):
+            reader.unpack(args.exdir, args.mdict)
+    elif args.add:
+        with ElapsedTimer(verbose=True):
+            is_mdd = args.mdict.endswith('.mdd')
+            dictionary = []
+            for resource in args.add:
+                fmt = '\rScan "%s": %%s' % resource
+                total = 0
+                if is_mdd:
+                    d = pack_mdd_file(resource, callback=make_callback(fmt))
+                elif resource.endswith('.db'):
+                    d = pack_mdx_sqlite3(resource, encoding=args.encoding, callback=make_callback(fmt))
+                else:
+                    d = pack_mdx_txt(resource, encoding=args.encoding, callback=make_callback(fmt))
+                dictionary.extend(d)
+                print()
+            print()
+            title = ''
+            description = ''
+            if args.title:
+                title = open(args.title, 'rt').read()
+            if args.description:
+                description = open(args.description, 'rt').read()
+            print('Pack to "%s"' % args.mdict)
+            pack(args.mdict, dictionary, title, description, encoding=args.encoding, is_mdd=is_mdd)
     else:
         parser.print_help()
 

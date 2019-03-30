@@ -205,8 +205,9 @@ class MDict(object):
                     print("LZO compression is not supported")
                     break
                 # decompress key block
-                header = b'\xf0' + pack('>I', decompressed_size)
-                key_block = lzo.decompress(header + key_block_compressed[start+8:end])
+                # header = b'\xf0' + pack('>I', decompressed_size)
+                # key_block = lzo.decompress(header + key_block_compressed[start+8:end])
+                key_block = lzo.decompress(key_block_compressed[start + 8:end], initSize=decompressed_size, blockSize=1308672)
             elif key_block_type == b'\x02\x00\x00\x00':
                 # decompress key block
                 key_block = zlib.decompress(key_block_compressed[start+8:end])
@@ -258,6 +259,7 @@ class MDict(object):
         # header text in utf-16 encoding ending with '\x00\x00'
         header_text = header_bytes[:-2].decode('utf-16').encode('utf-8')
         header_tag = self._parse_header(header_text)
+
         if not self._encoding:
             encoding = header_tag[b'Encoding']
             if sys.hexversion >= 0x03000000:
@@ -458,8 +460,9 @@ class MDD(MDict):
                     print("LZO compression is not supported")
                     break
                 # decompress
-                header = b'\xf0' + pack('>I', decompressed_size)
-                record_block = lzo.decompress(header + record_block_compressed[8:])
+                # header = b'\xf0' + pack('>I', decompressed_size)
+                # record_block = lzo.decompress(header + record_block_compressed[8:])
+                record_block = lzo.decompress(record_block_compressed[8:], initSize=decompressed_size, blockSize=1308672)
             elif record_block_type == b'\x02\x00\x00\x00':
                 # decompress
                 record_block = zlib.decompress(record_block_compressed[8:])
@@ -559,8 +562,9 @@ class MDX(MDict):
                     print("LZO compression is not supported")
                     break
                 # decompress
-                header = b'\xf0' + pack('>I', decompressed_size)
-                record_block = lzo.decompress(header + record_block_compressed[8:])
+                # header = b'\xf0' + pack('>I', decompressed_size)
+                # record_block = lzo.decompress(header + record_block_compressed[8:])
+                record_block = lzo.decompress(record_block_compressed[8:], initSize=decompressed_size, blockSize=1308672)
             # zlib compression
             elif record_block_type == b'\x02\x00\x00\x00':
                 # decompress
