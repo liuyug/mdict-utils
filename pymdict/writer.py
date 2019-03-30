@@ -180,11 +180,15 @@ def txt2sqlite(source, callback=None):
         entries = []
         key = None
         content = []
+        count = 0
         for line in f:
+            count += 1
             line = line.strip()
             if not line:
                 continue
             if line == '</>':
+                if not key or content:
+                    raise ValueError('Error at line %s' % count)
                 content = ''.join(content)
                 entries.append((key, content))
                 if count > max_batch:
@@ -242,13 +246,17 @@ def pack_mdx_txt(source, encoding='utf-8', callback=None):
         key = None
         content = []
         pos = 0
+        count = 0
         line = f.readline()
         while line:
+            count += 1
             line = line.strip()
             if not line:
                 line = f.readline()
                 continue
             if line == b'</>':
+                if not key or content:
+                    raise ValueError('Error at line %s' % count)
                 content = b''.join(content)
                 size = len(content + b'\0')
                 dictionary.append({
