@@ -175,38 +175,44 @@ def txt2sqlite(source, callback=None):
     c.execute('DROP TABLE IF EXISTS mdx_txt')
     c.execute('CREATE TABLE mdx_txt (entry text not null, paraphrase text not null)')
     max_batch = 1024 * 10
-    with open(source, 'rt') as f:
-        count = 0
-        entries = []
-        key = None
-        content = []
-        count = 0
-        for line in f:
-            count += 1
-            line = line.strip()
-            if not line:
-                continue
-            if line == '</>':
-                if not key or not content:
-                    raise ValueError('Error at line %s' % count)
-                content = ''.join(content)
-                entries.append((key, content))
-                if count > max_batch:
-                    c.executemany('INSERT INTO mdx_txt VALUES (?,?)', entries)
-                    conn.commit()
-                    count = 0
-                    entries = []
-                key = None
-                content = []
-                callback and callback(1)
-            elif not key:
-                key = line
+    sources = []
+    if os.path.isfile(source):
+        sources.append(source)
+    else:
+        sources.extend([os.path.join(source, f) for f in os.listdir(source) if f.endswith('.txt')])
+    for source in sources:
+        with open(source, 'rt') as f:
+            count = 0
+            entries = []
+            key = None
+            content = []
+            count = 0
+            for line in f:
                 count += 1
-            else:
-                content.append(line)
-        if entries:
-            c.executemany('INSERT INTO mdx_txt VALUES (?,?)', entries)
-            conn.commit()
+                line = line.strip()
+                if not line:
+                    continue
+                if line == '</>':
+                    if not key or not content:
+                        raise ValueError('Error at line %s' % count)
+                    content = ''.join(content)
+                    entries.append((key, content))
+                    if count > max_batch:
+                        c.executemany('INSERT INTO mdx_txt VALUES (?,?)', entries)
+                        conn.commit()
+                        count = 0
+                        entries = []
+                    key = None
+                    content = []
+                    callback and callback(1)
+                elif not key:
+                    key = line
+                    count += 1
+                else:
+                    content.append(line)
+            if entries:
+                c.executemany('INSERT INTO mdx_txt VALUES (?,?)', entries)
+                conn.commit()
         c.execute('CREATE INDEX entry_index ON mdx_txt (entry)')
         conn.close()
 
@@ -242,39 +248,45 @@ def pack_mdx_sqlite3(source, encoding='utf-8', callback=None):
 
 def pack_mdx_txt(source, encoding='utf-8', callback=None):
     dictionary = []
-    with open(source, 'rb') as f:
-        key = None
-        content = []
-        pos = 0
-        count = 0
-        line = f.readline()
-        while line:
-            count += 1
-            line = line.strip()
-            if not line:
-                line = f.readline()
-                continue
-            if line == b'</>':
-                content = b''.join(content)
-                if not key or not content:
-                    raise ValueError('Error at line %s: %s - %s' % (count, key, content))
-                size = len(content + b'\0')
-                dictionary.append({
-                    'key': key.decode(encoding),
-                    'pos': pos,
-                    'path': source,
-                    'size': size,
-                })
-                key = None
-                content = []
-                callback and callback(1)
-            elif not key:
-                key = line
-                pos = f.tell()
-            else:
-                content.append(line)
-
+    sources = []
+    if os.path.isfile(source):
+        sources.append(source)
+    else:
+        sources.extend([os.path.join(source, f) for f in os.listdir(source) if f.endswith('.txt')])
+    for source in sources:
+        with open(source, 'rb') as f:
+            key = None
+            content = []
+            pos = 0
+            count = 0
             line = f.readline()
+            while line:
+                count += 1
+                line = line.strip()
+                if not line:
+                    line = f.readline()
+                    continue
+                if line == b'</>':
+                    content = b''.join(content)
+                    if not key or not content:
+                        raise ValueError('Error at line %s: %s - %s' % (count, key, content))
+                    size = len(content + b'\0')
+                    dictionary.append({
+                        'key': key.decode(encoding),
+                        'pos': pos,
+                        'path': source,
+                        'size': size,
+                    })
+                    key = None
+                    content = []
+                    callback and callback(1)
+                elif not key:
+                    key = line
+                    pos = f.tell()
+                else:
+                    content.append(line)
+
+                line = f.readline()
     return dictionary
 
 
