@@ -77,7 +77,7 @@ def run():
         print(record)
     elif args.extract:
         reader.unpack(args.exdir, args.mdict)
-    elif args.create:
+    elif args.add:
         is_mdd = args.mdict.endswith('.mdd')
         dictionary = []
         for resource in args.add:
@@ -90,6 +90,7 @@ def run():
             else:
                 d = pack_mdx_txt(resource, encoding=args.encoding, callback=make_callback(fmt))
             dictionary.extend(d)
+            print()
         print()
         title = ''
         description = ''
