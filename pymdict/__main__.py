@@ -52,7 +52,7 @@ def run():
             meta = reader.meta(args.mdict)
             print('Title: %(title)s' % meta)
             print('Engine Version: %(generatedbyengineversion)s' % meta)
-            print('Record: %(record)s' % meta)
+            'record' in meta and print('Record: %(record)s' % meta)
             print('Format: %(format)s' % meta)
             'encoding' in meta and print('Encoding: %(encoding)s' % meta)
             'creationdate' in meta and print('Creation Date: %(creationdate)s' % meta)

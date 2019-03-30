@@ -72,8 +72,10 @@ def get_record(md, key, offset, length):
             print("LZO compression support is not available")
             return
         # decompress
+        # standard lzo (python-lzo) of c version
         # header = b'\xf0' + struct.pack('>I', decompressed_size)
         # record_block = lzo.decompress(header + block_compressed[8:])
+        # lzo of python version, no header!!!
         record_block = lzo.decompress(block_compressed[8:], initSize=decompressed_size, blockSize=1308672)
     # zlib compression
     elif block_type == b'\x02\x00\x00\x00':
