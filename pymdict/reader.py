@@ -115,7 +115,7 @@ def query(source, word, substyle=False, passcode=None):
     return '\n---\n'.join(record)
 
 
-def unpack(target, source, substyle=False, passcode=None):
+def unpack(target, source, split=1, substyle=False, passcode=None):
     target = target or './'
     if not os.path.exists(target):
         os.makedirs(target)
@@ -124,9 +124,23 @@ def unpack(target, source, substyle=False, passcode=None):
         mdx = MDX(source, encoding, substyle, passcode)
         bar = tqdm(total=len(mdx), unit='rec')
         basename = os.path.basename(source)
-        output_fname = os.path.join(target, basename + '.txt')
-        tf = open(output_fname, 'wb')
+
+        if split > 1:
+            part = len(mdx) // split + 1
+            out_fname = os.path.join(target, '%s.part%02d.txt' % (basename, 1))
+        else:
+            part = len(mdx)
+            out_fname = os.path.join(target, basename + '.txt')
+        tf = open(out_fname, 'wb')
+        item_count = 0
+        part_count = 1
         for key, value in mdx.items():
+            item_count += 1
+            if split > 1 and item_count % part == 0:
+                part_count += 1
+                tf.close()
+                out_fname = os.path.join(target, '%s.part%02d.txt' % (basename, part_count))
+                tf = open(out_fname, 'wb')
             tf.write(key)
             tf.write(b'\r\n')
             tf.write(value)
@@ -149,7 +163,8 @@ def unpack(target, source, substyle=False, passcode=None):
             f.write(b'\r\n'.join(mdx.header[b'Description'].splitlines()))
             f.close()
         if mdx.header.get(b'Title'):
-            fname = os.path.join(target, basename + '.title.txt')
+            # MDX will be unpacked as TXT, rename to HTML
+            fname = os.path.join(target, basename + '.title.html')
             f = open(fname, 'wb')
             f.write(mdx.header[b'Title'])
             f.close()

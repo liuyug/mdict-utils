@@ -36,6 +36,7 @@ def run():
     group = parser.add_argument_group('Reader')
     group.add_argument('-x', dest='extract', action='store_true', help='extract mdx/mdd file.')
     group.add_argument('-d', dest='exdir', help='extracted directory')
+    group.add_argument('--split', metavar='<number>', type=int, help='split MDX TXT to N files')
 
     group = parser.add_argument_group('Writer')
     group.add_argument('-a', dest='add', metavar='<resource>', action='append', help='add resource file to mdx/mdd file')
@@ -82,7 +83,7 @@ def run():
             print(record)
     elif args.extract:
         with ElapsedTimer(verbose=True):
-            reader.unpack(args.exdir, args.mdict)
+            reader.unpack(args.exdir, args.mdict, split=args.split)
     elif args.add:
         with ElapsedTimer(verbose=True):
             is_mdd = args.mdict.endswith('.mdd')
