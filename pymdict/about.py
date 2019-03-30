@@ -1,6 +1,6 @@
 
 name = 'pymdict'
-version = '1.0.0'
+version = '1.0.2'
 author = 'Yugang LIU'
 email = 'liuyug@gmail.com'
 url = 'https://github.com/liuyug/pymdict.git'
