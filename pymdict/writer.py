@@ -11,30 +11,40 @@ from .base.writemdict import MDictWriter as MDictWriterBase, \
     _OffsetTableEntry as _OffsetTableEntryBase
 
 
-MDX_OBJ = {}
+MDICT_OBJ = {}
 
 
-def get_record_null(mdx_file, key, pos, size, encoding):
-    global MDX_OBJ
-    if mdx_file not in MDX_OBJ:
-        if mdx_file.endswith('.db'):
-            conn = sqlite3.connect(mdx_file)
-            MDX_OBJ[mdx_file] = conn
+def get_record_null(mdict_file, key, pos, size, encoding, is_mdd):
+    global MDICT_OBJ
+    if mdict_file not in MDICT_OBJ:
+        if mdict_file.endswith('.db'):
+            conn = sqlite3.connect(mdict_file)
+            MDICT_OBJ[mdict_file] = conn
         else:
-            f = open(mdx_file, 'rb')
-            MDX_OBJ[mdx_file] = f
-    obj = MDX_OBJ[mdx_file]
-    if mdx_file.endswith('.db'):
-        sql = 'SELECT paraphrase FROM mdx_txt WHERE entry=?'
-        c = obj.execute(sql, (key,))
-        for row in c.fetchall():    # multi entry
-            record_null = (row[0] + '\0').encode(encoding)
-            if len(record_null) == size:
-                return record_null
+            f = open(mdict_file, 'rb')
+            MDICT_OBJ[mdict_file] = f
+    obj = MDICT_OBJ[mdict_file]
+    if is_mdd:
+        if mdict_file.endswith('.db'):
+            sql = 'SELECT file FROM mdd WHERE entry=?'
+            c = obj.execute(sql, (key,))
+            row = c.fetchone()
+            record_null = row[0]
+            return record_null
+        else:
+            return open(mdict_file, 'rb').read()
     else:
-        obj.seek(pos)
-        record_null = obj.read(size - 1)
-        return record_null + b'\0'
+        if mdict_file.endswith('.db'):
+            sql = 'SELECT paraphrase FROM mdx WHERE entry=?'
+            c = obj.execute(sql, (key,))
+            for row in c.fetchall():    # multi entry
+                record_null = (row[0] + '\0').encode(encoding)
+                if len(record_null) == size:
+                    return record_null
+        else:
+            obj.seek(pos)
+            record_null = obj.read(size - 1)
+            return record_null + b'\0'
     return b''
 
 
@@ -50,12 +60,9 @@ class _OffsetTableEntry(_OffsetTableEntryBase):
         self.is_mdd = is_mdd
 
     def get_record_null(self):
-        if self.is_mdd:
-            return open(self.record_null, 'rb').read()
-        else:
-            return get_record_null(
-                self.record_null, self.key0,
-                self.record_pos, self.record_size, self.encoding)
+        return get_record_null(
+            self.record_null, self.key0,
+            self.record_pos, self.record_size, self.encoding)
 
 
 class _MdxRecordBlock(_MdxRecordBlockBase):
@@ -103,7 +110,7 @@ class MDictWriter(MDictWriterBase):
                 record_size=record['size'],
                 record_pos=record['pos'],
                 offset=offset,
-                encoding=getattr(self, '_encoding', 'utf-8'),
+                encoding=self._python_encoding,
                 is_mdd=self._is_mdd,
             ))
             offset += record['size']
@@ -168,12 +175,12 @@ def pack(target, dictionary, title='', description='', encoding='utf-8', is_mdd=
     bar.close()
 
 
-def txt2sqlite(source, callback=None):
+def txt2db(source, callback=None):
     db_name = source + '.db'
     conn = sqlite3.connect(db_name)
     c = conn.cursor()
-    c.execute('DROP TABLE IF EXISTS mdx_txt')
-    c.execute('CREATE TABLE mdx_txt (entry text not null, paraphrase text not null)')
+    c.execute('DROP TABLE IF EXISTS mdx')
+    c.execute('CREATE TABLE mdx (entry text not null, paraphrase text not null)')
     max_batch = 1024 * 10
     sources = []
     if os.path.isfile(source):
@@ -198,7 +205,7 @@ def txt2sqlite(source, callback=None):
                     content = ''.join(content)
                     entries.append((key, content))
                     if count > max_batch:
-                        c.executemany('INSERT INTO mdx_txt VALUES (?,?)', entries)
+                        c.executemany('INSERT INTO mdx VALUES (?,?)', entries)
                         conn.commit()
                         count = 0
                         entries = []
@@ -211,16 +218,16 @@ def txt2sqlite(source, callback=None):
                 else:
                     content.append(line)
             if entries:
-                c.executemany('INSERT INTO mdx_txt VALUES (?,?)', entries)
+                c.executemany('INSERT INTO mdx VALUES (?,?)', entries)
                 conn.commit()
-        c.execute('CREATE INDEX entry_index ON mdx_txt (entry)')
+        c.execute('CREATE INDEX entry_index ON mdx (entry)')
         conn.close()
 
 
-def sqlite2txt(source, callback=None):
+def db2txt(source, callback=None):
     mdx_txt = source + '.txt'
     with open(mdx_txt, 'wt') as f:
-        sql = 'SELECT entry, paraphrase FROM mdx_txt'
+        sql = 'SELECT entry, paraphrase FROM mdx'
         with sqlite3.connect(source) as conn:
             cur = conn.execute(sql)
             for c in cur:
@@ -230,9 +237,9 @@ def sqlite2txt(source, callback=None):
                 callback and callback(1)
 
 
-def pack_mdx_sqlite3(source, encoding='utf-8', callback=None):
+def pack_mdx_db(source, encoding='utf-8', callback=None):
     dictionary = []
-    sql = 'SELECT entry, paraphrase FROM mdx_txt'
+    sql = 'SELECT entry, paraphrase FROM mdx'
     with sqlite3.connect(source) as conn:
         cur = conn.execute(sql)
         for c in cur:
@@ -241,6 +248,22 @@ def pack_mdx_sqlite3(source, encoding='utf-8', callback=None):
                 'pos': 0,
                 'path': source,
                 'size': len((c[1] + '\0').encode(encoding)),
+            })
+            callback and callback(1)
+    return dictionary
+
+
+def pack_mdd_db(source, callback=None):
+    dictionary = []
+    sql = 'SELECT entry, LENGTH(file) FROM mdd'
+    with sqlite3.connect(source) as conn:
+        cur = conn.execute(sql)
+        for c in cur:
+            dictionary.append({
+                'key': c[0],
+                'pos': 0,
+                'path': source,
+                'size': c[1],
             })
             callback and callback(1)
     return dictionary

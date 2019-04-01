@@ -11,27 +11,44 @@ from .base.readmdict import MDX, MDD
 
 def meta(source, substyle=False, passcode=None):
     meta = {}
-    if source.endswith('.mdx'):
-        encoding = ''
-        md = MDX(source, encoding, substyle, passcode)
-    if source.endswith('.mdd'):
-        md = MDD(source, passcode)
-    meta['version'] = md._version
-    meta['record'] = len(md)
-    for key, value in md.header.items():
-        key = key.decode('utf-8').lower()
-        value = value.decode('utf-8')
-        meta[key] = value
+    if source.endswith('.db'):
+        with sqlite3.connect(source) as conn:
+            c = conn.execute('SELECT * FROM meta')
+            for row in c.fetchall():
+                meta[row[0]] = row[1]
+    else:
+        if source.endswith('.mdx'):
+            encoding = ''
+            md = MDX(source, encoding, substyle, passcode)
+        if source.endswith('.mdd'):
+            md = MDD(source, passcode)
+        meta['version'] = md._version
+        meta['record'] = len(md)
+        for key, value in md.header.items():
+            # key has been decode from UTF-16 and encode again with UTF-8
+            key = key.decode('utf-8').lower()
+            value = value.decode('utf-8')
+            meta[key] = value
     return meta
 
 
 def get_keys(source, substyle=False, passcode=None):
-    if source.endswith('.mdx'):
-        encoding = ''
-        md = MDX(source, encoding, substyle, passcode)
-    if source.endswith('.mdd'):
-        md = MDD(source, passcode)
-    return md.keys()
+    if source.endswith('.db'):
+        with sqlite3.connect(source) as conn:
+            c = conn.execute('SELECT entry FROM mdx')
+            for row in c.fetchall():
+                yield row[0]
+            c = conn.execute('SELECT entry FROM mdd')
+            for row in c.fetchall():
+                yield row[0]
+    else:
+        if source.endswith('.mdx'):
+            encoding = ''
+            md = MDX(source, encoding, substyle, passcode)
+        if source.endswith('.mdd'):
+            md = MDD(source, passcode)
+        for k in md.keys():
+            yield k.decode('utf-8')
 
 
 def get_record(md, key, offset, length):
@@ -98,21 +115,31 @@ def get_record(md, key, offset, length):
 
 
 def query(source, word, substyle=False, passcode=None):
-    if source.endswith('.mdx'):
-        encoding = ''
-        md = MDX(source, encoding, substyle, passcode)
-    if source.endswith('.mdd'):
-        md = MDD(source, passcode)
-    word = word.encode('utf-8')
     record = []
-    for x in range(len(md._key_list)):
-        offset, key = md._key_list[x]
-        if word == key:
-            if (x + 1) < len(md._key_list):
-                length = md._key_list[x + 1][0] - offset
-            else:
-                length = -1
-            record.append(get_record(md, key, offset, length))
+    if source.endswith('.db'):
+        with sqlite3.connect(source) as conn:
+            c = conn.execute('SELECT * FROM mdx WHERE entry=?', (word, ))
+            for row in c.fetchall():
+                record.append(row[1])
+            if not record:
+                c = conn.execute('SELECT * FROM mdd WHERE entry=?', (word, ))
+                for row in c.fetchall():
+                    record.append(row[1])
+    else:
+        if source.endswith('.mdx'):
+            encoding = ''
+            md = MDX(source, encoding, substyle, passcode)
+        if source.endswith('.mdd'):
+            md = MDD(source, passcode)
+        word = word.encode('utf-8')
+        for x in range(len(md._key_list)):
+            offset, key = md._key_list[x]
+            if word == key:
+                if (x + 1) < len(md._key_list):
+                    length = md._key_list[x + 1][0] - offset
+                else:
+                    length = -1
+                record.append(get_record(md, key, offset, length))
     return '\n---\n'.join(record)
 
 
@@ -237,11 +264,13 @@ def unpack_to_db(source, substyle=False, passcode=None):
                 conn.executemany('INSERT INTO mdx VALUES (?,?)', entries)
                 conn.commit()
             bar.close()
+            conn.execute('CREATE INDEX mdx_entry_index ON mdx (entry)')
+
             conn.execute('DROP TABLE IF EXISTS meta')
             conn.execute('CREATE TABLE meta (key TEXT NOT NULL, value TEXT NOT NULL)')
 
             for key, value in mdx.header.items():
-                key = key.decode(mdx._encoding)
+                key = key.decode(mdx._encoding).lower()
                 value = '\r\n'.join(value.decode(mdx._encoding).splitlines())
                 conn.execute('INSERT INTO meta VALUES (?,?)', (key, value,))
             conn.commit()
@@ -254,11 +283,12 @@ def unpack_to_db(source, substyle=False, passcode=None):
             count = 0
             for key, value in mdd.items():
                 count += len(value)
-                key = key.decode('utf-8')
+                key = key.decode('utf-8').lower()
                 conn.execute('INSERT INTO mdd VALUES (?,?)', (key, value))
                 if count > max_batch:
                     conn.commit()
                     count = 0
                 bar.update(1)
             conn.commit()
+            conn.execute('CREATE INDEX mdd_entry_index ON mdd (entry)')
             bar.close()

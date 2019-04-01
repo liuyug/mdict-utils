@@ -3,8 +3,8 @@ import argparse
 
 from . import about
 from . import reader
-from .writer import pack, pack_mdd_file, pack_mdx_txt, pack_mdx_sqlite3,  \
-    txt2sqlite, sqlite2txt
+from .writer import pack, pack_mdd_file, pack_mdx_txt, pack_mdx_db, pack_mdd_db, \
+    txt2db, db2txt
 from .utils import ElapsedTimer
 
 
@@ -53,31 +53,30 @@ def run():
     if args.meta:
         with ElapsedTimer(verbose=True):
             meta = reader.meta(args.mdict)
-            print('Title: %(title)s' % meta)
-            print('Engine Version: %(generatedbyengineversion)s' % meta)
+            'title' in meta and print('Title: %(title)s' % meta)
+            'generatedbyengineversion' in meta and print('Engine Version: %(generatedbyengineversion)s' % meta)
             'record' in meta and print('Record: %(record)s' % meta)
-            print('Format: %(format)s' % meta)
+            'format' in meta and print('Format: %(format)s' % meta)
             'encoding' in meta and print('Encoding: %(encoding)s' % meta)
             'creationdate' in meta and print('Creation Date: %(creationdate)s' % meta)
-            print('Description: %(description)s' % meta)
+            'description' in meta and print('Description: %(description)s' % meta)
     elif args.key:
         keys = reader.get_keys(args.mdict)
         count = 0
         for key in keys:
             count += 1
-            key = key.decode('utf-8')
             print(key)
     elif args.txt_db:
         with ElapsedTimer(verbose=True):
             total = 0
             fmt = '\rConvert "%s": %%s' % args.mdict
-            txt2sqlite(args.mdict, callback=make_callback(fmt))
+            txt2db(args.mdict, callback=make_callback(fmt))
             print()
     elif args.db_txt:
         with ElapsedTimer(verbose=True):
             total = 0
             fmt = '\rConvert "%s": %%s' % args.mdict
-            sqlite2txt(args.mdict, callback=make_callback(fmt))
+            db2txt(args.mdict, callback=make_callback(fmt))
             print()
     elif args.query:
         with ElapsedTimer(verbose=True):
@@ -103,11 +102,15 @@ def run():
                 fmt = '\rScan "%s": %%s' % resource
                 total = 0
                 if is_mdd:
-                    d = pack_mdd_file(resource, callback=make_callback(fmt))
-                elif resource.endswith('.db'):
-                    d = pack_mdx_sqlite3(resource, encoding=args.encoding, callback=make_callback(fmt))
+                    if resource.endswith('.db'):
+                        d = pack_mdd_db(resource, callback=make_callback(fmt))
+                    else:
+                        d = pack_mdd_file(resource, callback=make_callback(fmt))
                 else:
-                    d = pack_mdx_txt(resource, encoding=args.encoding, callback=make_callback(fmt))
+                    if resource.endswith('.db'):
+                        d = pack_mdx_db(resource, encoding=args.encoding, callback=make_callback(fmt))
+                    else:
+                        d = pack_mdx_txt(resource, encoding=args.encoding, callback=make_callback(fmt))
                 dictionary.extend(d)
                 print()
             print()
