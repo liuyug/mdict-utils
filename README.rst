@@ -4,6 +4,9 @@ MDict Tool
 
 MDict pack/unpack tool
 
+.. NOTE::
+
+    Support MIT and 996.icu license
 
 Refer MDict read/write:
 
