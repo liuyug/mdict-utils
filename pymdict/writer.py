@@ -249,6 +249,7 @@ def pack_mdx_sqlite3(source, encoding='utf-8', callback=None):
 def pack_mdx_txt(source, encoding='utf-8', callback=None):
     dictionary = []
     sources = []
+    null_length = len('\0'.encode(encoding))
     if os.path.isfile(source):
         sources.append(source)
     else:
@@ -270,7 +271,7 @@ def pack_mdx_txt(source, encoding='utf-8', callback=None):
                     content = b''.join(content)
                     if not key or not content:
                         raise ValueError('Error at line %s: %s - %s' % (count, key, content))
-                    size = len(content + b'\0')
+                    size = len(content) + null_length
                     dictionary.append({
                         'key': key.decode(encoding),
                         'pos': pos,
