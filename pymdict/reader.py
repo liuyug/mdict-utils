@@ -115,7 +115,7 @@ def query(source, word, substyle=False, passcode=None):
     return '\n---\n'.join(record)
 
 
-def unpack(target, source, split=1, substyle=False, passcode=None):
+def unpack(target, source, split=None, substyle=False, passcode=None):
     target = target or './'
     if not os.path.exists(target):
         os.makedirs(target)
@@ -125,22 +125,42 @@ def unpack(target, source, split=1, substyle=False, passcode=None):
         bar = tqdm(total=len(mdx), unit='rec')
         basename = os.path.basename(source)
 
-        if split > 1:
-            part = len(mdx) // split + 1
-            out_fname = os.path.join(target, '%s.part%02d.txt' % (basename, 1))
-        else:
+        out_objs = {}
+        if not split:       # no split
             part = len(mdx)
             out_fname = os.path.join(target, basename + '.txt')
-        tf = open(out_fname, 'wb')
+            tf = open(out_fname, 'wb')
+            out_objs['all'] = tf
+        elif split == 'az':
+            import string
+            for c in string.ascii_lowercase:
+                out_fname = os.path.join(target, '%s.%s.txt' % (basename, c))
+                tf = open(out_fname, 'wb')
+                out_objs[c] = tf
+            out_fname = os.path.join(target, '%s.other.txt' % (basename))
+            tf = open(out_fname, 'wb')
+            out_objs['other'] = tf
+        elif split.isdigit():
+            part = len(mdx) // int(split) + 1
+            for x in range(int(split)):
+                out_fname = os.path.join(target, '%s.part%02d.txt' % (basename, x + 1))
+                tf = open(out_fname, 'wb')
+                out_objs[x + 1] = tf
+        else:
+            raise ValueError('split value: %s' % split)
         item_count = 0
         part_count = 1
         for key, value in mdx.items():
             item_count += 1
-            if split > 1 and item_count % part == 0:
-                part_count += 1
-                tf.close()
-                out_fname = os.path.join(target, '%s.part%02d.txt' % (basename, part_count))
-                tf = open(out_fname, 'wb')
+            if not split:
+                tf = out_objs.get('all')
+            elif split == 'az':
+                k = key.decode().lower()
+                tf = out_objs.get(k[0], out_objs['other'])
+            elif split.isdigit():
+                if item_count % part == 0:
+                    part_count += 1
+                tf = out_objs.get(part_count)
             tf.write(key)
             tf.write(b'\r\n')
             tf.write(value)
@@ -148,7 +168,8 @@ def unpack(target, source, split=1, substyle=False, passcode=None):
                 tf.write(b'\r\n')
             tf.write(b'</>\r\n')
             bar.update(1)
-        tf.close()
+        for obj in out_objs.values():
+            obj.close()
         bar.close()
         # write header
         if mdx.header.get(b'StyleSheet'):
