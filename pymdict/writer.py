@@ -62,7 +62,7 @@ class _OffsetTableEntry(_OffsetTableEntryBase):
     def get_record_null(self):
         return get_record_null(
             self.record_null, self.key0,
-            self.record_pos, self.record_size, self.encoding)
+            self.record_pos, self.record_size, self.encoding, self.is_mdd)
 
 
 class _MdxRecordBlock(_MdxRecordBlockBase):
