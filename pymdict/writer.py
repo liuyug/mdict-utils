@@ -280,8 +280,8 @@ def pack_mdx_txt(source, encoding='utf-8', callback=None):
     for source in sources:
         with open(source, 'rb') as f:
             key = None
-            content = []
             pos = 0
+            offset = 0
             count = 0
             line = f.readline()
             while line:
@@ -291,10 +291,11 @@ def pack_mdx_txt(source, encoding='utf-8', callback=None):
                     line = f.readline()
                     continue
                 if line == b'</>':
-                    content = b''.join(content)
-                    if not key or not content:
-                        raise ValueError('Error at line %s: %s - %s' % (count, key, content))
-                    size = len(content) + null_length
+                    if not key or offset == pos:
+                        raise ValueError('Error at line %s: %s' % (count, key))
+                    # calculate content length including \r\n.
+                    # readline will filter \r\n
+                    size = offset - pos + null_length
                     dictionary.append({
                         'key': key.decode(encoding),
                         'pos': pos,
@@ -302,13 +303,12 @@ def pack_mdx_txt(source, encoding='utf-8', callback=None):
                         'size': size,
                     })
                     key = None
-                    content = []
                     callback and callback(1)
                 elif not key:
                     key = line
                     pos = f.tell()
                 else:
-                    content.append(line)
+                    offset = f.tell()
 
                 line = f.readline()
     return dictionary
