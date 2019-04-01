@@ -108,10 +108,11 @@ def get_record(md, key, offset, length):
         record_null = record_block[record_start:record_start + length]
     else:
         record_null = record_block[record_start:]
-    record = record_null.strip().decode(md._encoding)
-
     f.close()
-    return record
+    if md._fname.endswith('.mdd'):
+        return record_null
+    else:
+        return record_null.strip().decode(md._encoding)
 
 
 def query(source, word, substyle=False, passcode=None):
@@ -124,7 +125,7 @@ def query(source, word, substyle=False, passcode=None):
             if not record:
                 c = conn.execute('SELECT * FROM mdd WHERE entry=?', (word, ))
                 for row in c.fetchall():
-                    record.append(row[1])
+                    return row[1]
     else:
         if source.endswith('.mdx'):
             encoding = ''
@@ -140,6 +141,9 @@ def query(source, word, substyle=False, passcode=None):
                 else:
                     length = -1
                 record.append(get_record(md, key, offset, length))
+        if md._fname.endswith('.mdd'):
+            if record:
+                return record[0]
     return '\n---\n'.join(record)
 
 
