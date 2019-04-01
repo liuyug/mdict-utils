@@ -1,4 +1,5 @@
 
+import sqlite3
 import struct
 import os.path
 import zlib
@@ -205,3 +206,59 @@ def unpack(target, source, split=None, substyle=False, passcode=None):
             df.close()
             bar.update(1)
         bar.close()
+
+
+def unpack_to_db(source, substyle=False, passcode=None):
+    target, _ = os.path.splitext(source)
+    target = target + '.db'
+    with sqlite3.connect(target) as conn:
+        if source.endswith('.mdx'):
+            conn.execute('DROP TABLE IF EXISTS mdx')
+            conn.execute('CREATE TABLE mdx (entry text not null, paraphrase text not null)')
+            encoding = ''
+            mdx = MDX(source, encoding, substyle, passcode)
+            bar = tqdm(total=len(mdx), unit='rec')
+
+            max_batch = 1024
+            count = 0
+            entries = []
+            for key, value in mdx.items():
+                count += 1
+                key = key.decode(mdx._encoding)
+                value = value.decode(mdx._encoding)
+                entries.append((key, value))
+                if count > max_batch:
+                    conn.executemany('INSERT INTO mdx VALUES (?,?)', entries)
+                    conn.commit()
+                    count = 0
+                    entries = []
+                bar.update(1)
+            if entries:
+                conn.executemany('INSERT INTO mdx VALUES (?,?)', entries)
+                conn.commit()
+            bar.close()
+            conn.execute('DROP TABLE IF EXISTS meta')
+            conn.execute('CREATE TABLE meta (key TEXT NOT NULL, value TEXT NOT NULL)')
+
+            for key, value in mdx.header.items():
+                key = key.decode(mdx._encoding)
+                value = '\r\n'.join(value.decode(mdx._encoding).splitlines())
+                conn.execute('INSERT INTO meta VALUES (?,?)', (key, value,))
+            conn.commit()
+        elif source.endswith('.mdd'):
+            conn.execute('DROP TABLE IF EXISTS mdd')
+            conn.execute('CREATE TABLE mdd (entry TEXT NOT NULL, file GLOB NOT NULL)')
+            mdd = MDD(source, passcode)
+            bar = tqdm(total=len(mdd), unit='rec')
+            max_batch = 1024 * 1024 * 10
+            count = 0
+            for key, value in mdd.items():
+                count += len(value)
+                key = key.decode('utf-8')
+                conn.execute('INSERT INTO mdd VALUES (?,?)', (key, value))
+                if count > max_batch:
+                    conn.commit()
+                    count = 0
+                bar.update(1)
+            conn.commit()
+            bar.close()
