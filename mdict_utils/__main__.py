@@ -35,8 +35,8 @@ def run():
 
     group = parser.add_argument_group('Reader')
     group.add_argument('-x', dest='extract', action='store_true', help='extract mdx/mdd file.')
-    group.add_argument('-d', dest='exdir', help='extracted directory')
-    group.add_argument('--mdict-db', action='store_true', help='extract mdict to DB')
+    group.add_argument('-d', dest='exdir', help='extract mdx/mdd to directory')
+    group.add_argument('--mdict-db', action='store_true', help='extract mdx/mdd to DB')
     group.add_argument('--split-n', metavar='<number>', help='split MDX TXT to N files')
     group.add_argument('--split-az', action='store_true', help='split MDX TXT to files by a...z')
 
