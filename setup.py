@@ -28,7 +28,7 @@ setup(
     packages=find_packages(),
     entry_points={
         'console_scripts': [
-            'mdict = pymdict.__main__:run',
+            'mdict = mdict_utils.__main__:run',
         ],
     },
     install_requires=requirements,
