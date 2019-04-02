@@ -1,5 +1,5 @@
 
-from pymdict import about
+from mdict_utils import about
 
 from setuptools import setup, find_packages
 
