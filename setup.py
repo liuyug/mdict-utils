@@ -8,7 +8,7 @@ with open('README.rst') as f:
     long_description = f.read()
 
 requirements = []
-with open('requirements.txt') as f:
+with open('requirements.txt', encoding='utf-8') as f:
     for line in f.readlines():
         line.strip()
         if line.startswith('#'):
@@ -23,6 +23,7 @@ setup(
     license=about.license,
     description=about.description,
     long_description=long_description,
+    long_description_content_type='text/x-rst',
     python_requires='>=3.6',
     platforms=['noarch'],
     packages=find_packages(),

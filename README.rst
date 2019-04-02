@@ -91,7 +91,7 @@ Reference
 +   https://github.com/zhansliu/writemdict
 
 Donate 捐赠
-===========
+=============
 
 .. image:: alipay_pay.jpg
     :width: 45%
