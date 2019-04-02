@@ -12,7 +12,7 @@ Install
 =======
 ::
 
-    pip install pymdict
+    pip install mdict-utils
 
 Usage
 =====
