@@ -1,5 +1,5 @@
 
-name = 'pymdict'
+name = 'mdict-utils'
 version = '1.0.4'
 author = 'Yugang LIU'
 email = 'liuyug@gmail.com'
