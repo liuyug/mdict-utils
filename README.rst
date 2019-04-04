@@ -52,8 +52,12 @@ Unpack MDD::
 
 Unpack MDX/MDD to sqlite3 DB::
 
-    mdict -x dict.mdx --mdict-db
-    mdict -x dict.mdd --mdict-db
+    mdict -x dict.mdx --exdb
+    mdict -x dict.mdd --exdb
+
+Unpack MDX/MDD to sqlite3 DB with zip compress::
+
+    mdict -x dict.mdx --exdb-zip
 
 Pack
 ----

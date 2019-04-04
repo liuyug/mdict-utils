@@ -36,7 +36,8 @@ def run():
     group = parser.add_argument_group('Reader')
     group.add_argument('-x', dest='extract', action='store_true', help='extract mdx/mdd file.')
     group.add_argument('-d', dest='exdir', help='extract mdx/mdd to directory')
-    group.add_argument('--mdict-db', action='store_true', help='extract mdx/mdd to DB')
+    group.add_argument('--exdb', action='store_true', help='extract mdx/mdd to DB')
+    group.add_argument('--exdb-zip', action='store_true', help='extract mdx/mdd to DB with ZIP compress')
     group.add_argument('--split-n', metavar='<number>', help='split MDX TXT to N files')
     group.add_argument('--split-az', action='store_true', help='split MDX TXT to files by a...z')
 
@@ -84,8 +85,8 @@ def run():
             print(record)
     elif args.extract:
         with ElapsedTimer(verbose=True):
-            if args.mdict_db:
-                reader.unpack_to_db(args.mdict)
+            if args.exdb or args.exdb_zip:
+                reader.unpack_to_db(args.exdir, args.mdict, zip=args.exdb_zip)
             else:
                 if args.split_az:
                     split = 'az'

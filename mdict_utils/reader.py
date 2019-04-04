@@ -239,24 +239,41 @@ def unpack(target, source, split=None, substyle=False, passcode=None):
         bar.close()
 
 
-def unpack_to_db(source, substyle=False, passcode=None):
-    target, _ = os.path.splitext(source)
-    target = target + '.db'
-    with sqlite3.connect(target) as conn:
+def unpack_to_db(target, source, encoding='', substyle=False, passcode=None, zip=True):
+    target = target or './'
+    if not os.path.exists(target):
+        os.makedirs(target)
+    name, _ = os.path.splitext(os.path.basename(source))
+    db_name = os.path.join(target, name + '.db')
+    with sqlite3.connect(db_name) as conn:
         if source.endswith('.mdx'):
+            mdx = MDX(source, encoding, substyle, passcode)
+
+            conn.execute('DROP TABLE IF EXISTS meta')
+            conn.execute('CREATE TABLE meta (key TEXT NOT NULL, value TEXT NOT NULL)')
+            meta = {}
+            for key, value in mdx.header.items():
+                key = key.decode(mdx._encoding).lower()
+                value = '\r\n'.join(value.decode(mdx._encoding).splitlines())
+                meta[key] = value
+            meta['zip'] = zip
+            conn.executemany('INSERT INTO meta VALUES (?,?)', meta.items())
+            conn.commit()
+
             conn.execute('DROP TABLE IF EXISTS mdx')
             conn.execute('CREATE TABLE mdx (entry text not null, paraphrase text not null)')
-            encoding = ''
-            mdx = MDX(source, encoding, substyle, passcode)
-            bar = tqdm(total=len(mdx), unit='rec')
 
+            bar = tqdm(total=len(mdx), unit='rec')
             max_batch = 1024
             count = 0
             entries = []
             for key, value in mdx.items():
                 count += 1
                 key = key.decode(mdx._encoding)
-                value = value.decode(mdx._encoding)
+                if zip:
+                    value = zlib.compress(value, 9)
+                else:
+                    value = value.decode(mdx._encoding)
                 entries.append((key, value))
                 if count > max_batch:
                     conn.executemany('INSERT INTO mdx VALUES (?,?)', entries)
@@ -270,14 +287,6 @@ def unpack_to_db(source, substyle=False, passcode=None):
             bar.close()
             conn.execute('CREATE INDEX mdx_entry_index ON mdx (entry)')
 
-            conn.execute('DROP TABLE IF EXISTS meta')
-            conn.execute('CREATE TABLE meta (key TEXT NOT NULL, value TEXT NOT NULL)')
-
-            for key, value in mdx.header.items():
-                key = key.decode(mdx._encoding).lower()
-                value = '\r\n'.join(value.decode(mdx._encoding).splitlines())
-                conn.execute('INSERT INTO meta VALUES (?,?)', (key, value,))
-            conn.commit()
         elif source.endswith('.mdd'):
             conn.execute('DROP TABLE IF EXISTS mdd')
             conn.execute('CREATE TABLE mdd (entry TEXT NOT NULL, file GLOB NOT NULL)')
