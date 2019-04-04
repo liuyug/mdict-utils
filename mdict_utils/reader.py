@@ -26,8 +26,8 @@ def meta(source, substyle=False, passcode=None):
         meta['record'] = len(md)
         for key, value in md.header.items():
             # key has been decode from UTF-16 and encode again with UTF-8
-            key = key.decode('utf-8').lower()
-            value = value.decode('utf-8')
+            key = key.decode('UTF-8').lower()
+            value = value.decode('UTF-8')
             meta[key] = value
     return meta
 
@@ -48,7 +48,7 @@ def get_keys(source, substyle=False, passcode=None):
         if source.endswith('.mdd'):
             md = MDD(source, passcode)
         for k in md.keys():
-            yield k.decode('utf-8')
+            yield k.decode('UTF-8')
 
 
 def get_record(md, key, offset, length):
@@ -132,7 +132,7 @@ def query(source, word, substyle=False, passcode=None):
             md = MDX(source, encoding, substyle, passcode)
         if source.endswith('.mdd'):
             md = MDD(source, passcode)
-        word = word.encode('utf-8')
+        word = word.encode('UTF-8')
         for x in range(len(md._key_list)):
             offset, key = md._key_list[x]
             if word == key:
@@ -228,7 +228,7 @@ def unpack(target, source, split=None, substyle=False, passcode=None):
         mdd = MDD(source, passcode)
         bar = tqdm(total=len(mdd), unit='rec')
         for key, value in mdd.items():
-            fname = key.decode('utf-8').replace('\\', os.path.sep)
+            fname = key.decode('UTF-8').replace('\\', os.path.sep)
             dfname = datafolder + fname
             if not os.path.exists(os.path.dirname(dfname)):
                 os.makedirs(os.path.dirname(dfname))
@@ -261,7 +261,10 @@ def unpack_to_db(target, source, encoding='', substyle=False, passcode=None, zip
             conn.commit()
 
             conn.execute('DROP TABLE IF EXISTS mdx')
-            conn.execute('CREATE TABLE mdx (entry text not null, paraphrase text not null)')
+            if zip:
+                conn.execute('CREATE TABLE mdx (entry TEXT NOT NULL, paraphrase GLOB NOT NULL)')
+            else:
+                conn.execute('CREATE TABLE mdx (entry TEXT NOT NULL, paraphrase TEXT NOT NULL)')
 
             bar = tqdm(total=len(mdx), unit='rec')
             max_batch = 1024
@@ -271,7 +274,7 @@ def unpack_to_db(target, source, encoding='', substyle=False, passcode=None, zip
                 count += 1
                 key = key.decode(mdx._encoding)
                 if zip:
-                    value = zlib.compress(value, 9)
+                    value = zlib.compress(value)
                 else:
                     value = value.decode(mdx._encoding)
                 entries.append((key, value))
@@ -296,7 +299,7 @@ def unpack_to_db(target, source, encoding='', substyle=False, passcode=None, zip
             count = 0
             for key, value in mdd.items():
                 count += len(value)
-                key = key.decode('utf-8').lower()
+                key = key.decode('UTF-8').lower()
                 conn.execute('INSERT INTO mdd VALUES (?,?)', (key, value))
                 if count > max_batch:
                     conn.commit()

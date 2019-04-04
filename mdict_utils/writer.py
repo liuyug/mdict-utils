@@ -3,6 +3,7 @@ import sqlite3
 import struct
 import os.path
 import locale
+import zlib
 
 from tqdm import tqdm
 
@@ -163,7 +164,7 @@ class MDictWriter(MDictWriterBase):
         self._write_record_sect(outfile, callback=callback)
 
 
-def pack(target, dictionary, title='', description='', encoding='utf-8', is_mdd=False):
+def pack(target, dictionary, title='', description='', encoding='UTF-8', is_mdd=False):
     def callback(value):
         bar.update(value)
 
@@ -175,12 +176,15 @@ def pack(target, dictionary, title='', description='', encoding='utf-8', is_mdd=
     bar.close()
 
 
-def txt2db(source, callback=None):
+def txt2db(source, encoding='UTF-8', zip=False, callback=None):
     db_name = source + '.db'
     conn = sqlite3.connect(db_name)
     c = conn.cursor()
     c.execute('DROP TABLE IF EXISTS mdx')
-    c.execute('CREATE TABLE mdx (entry text not null, paraphrase text not null)')
+    if zip:
+        c.execute('CREATE TABLE mdx (entry TEXT NOT NULL, paraphrase GLOB NOT NULL)')
+    else:
+        c.execute('CREATE TABLE mdx (entry TEXT NOT NULL, paraphrase TEXT NOT NULL)')
     max_batch = 1024 * 10
     sources = []
     if os.path.isfile(source):
@@ -188,7 +192,7 @@ def txt2db(source, callback=None):
     else:
         sources.extend([os.path.join(source, f) for f in os.listdir(source) if f.endswith('.txt')])
     for source in sources:
-        with open(source, 'rt') as f:
+        with open(source, 'rt', encoding=encoding) as f:
             count = 0
             entries = []
             key = None
@@ -203,6 +207,8 @@ def txt2db(source, callback=None):
                     if not key or not content:
                         raise ValueError('Error at line %s' % count)
                     content = ''.join(content)
+                    if zip:
+                        content = zlib.compress(content.decode(encoding))
                     entries.append((key, content))
                     if count > max_batch:
                         c.executemany('INSERT INTO mdx VALUES (?,?)', entries)
@@ -224,20 +230,24 @@ def txt2db(source, callback=None):
         conn.close()
 
 
-def db2txt(source, callback=None):
+def db2txt(source, encoding='UTF-8', zip=False, callback=None):
     mdx_txt = source + '.txt'
-    with open(mdx_txt, 'wt') as f:
+    with open(mdx_txt, 'wt', encoding=encoding) as f:
         sql = 'SELECT entry, paraphrase FROM mdx'
         with sqlite3.connect(source) as conn:
             cur = conn.execute(sql)
             for c in cur:
                 f.write(c[0] + '\r\n')
-                f.write(c[1] + '\r\n')
+                if zip:
+                    value = zlib.decompress(c[1]).decode(encoding)
+                else:
+                    value = c[1]
+                f.write(value + '\r\n')
                 f.write('</>\r\n')
                 callback and callback(1)
 
 
-def pack_mdx_db(source, encoding='utf-8', callback=None):
+def pack_mdx_db(source, encoding='UTF-8', callback=None):
     dictionary = []
     sql = 'SELECT entry, paraphrase FROM mdx'
     with sqlite3.connect(source) as conn:
@@ -269,7 +279,7 @@ def pack_mdd_db(source, callback=None):
     return dictionary
 
 
-def pack_mdx_txt(source, encoding='utf-8', callback=None):
+def pack_mdx_txt(source, encoding='UTF-8', callback=None):
     dictionary = []
     sources = []
     null_length = len('\0'.encode(encoding))
