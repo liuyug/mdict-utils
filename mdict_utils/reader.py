@@ -262,7 +262,7 @@ def unpack_to_db(target, source, encoding='', substyle=False, passcode=None, zip
 
             conn.execute('DROP TABLE IF EXISTS mdx')
             if zip:
-                conn.execute('CREATE TABLE mdx (entry TEXT NOT NULL, paraphrase GLOB NOT NULL)')
+                conn.execute('CREATE TABLE mdx (entry TEXT NOT NULL, paraphrase BLOB NOT NULL)')
             else:
                 conn.execute('CREATE TABLE mdx (entry TEXT NOT NULL, paraphrase TEXT NOT NULL)')
 
@@ -292,7 +292,7 @@ def unpack_to_db(target, source, encoding='', substyle=False, passcode=None, zip
 
         elif source.endswith('.mdd'):
             conn.execute('DROP TABLE IF EXISTS mdd')
-            conn.execute('CREATE TABLE mdd (entry TEXT NOT NULL, file GLOB NOT NULL)')
+            conn.execute('CREATE TABLE mdd (entry TEXT NOT NULL, file BLOB NOT NULL)')
             mdd = MDD(source, passcode)
             bar = tqdm(total=len(mdd), unit='rec')
             max_batch = 1024 * 1024 * 10
