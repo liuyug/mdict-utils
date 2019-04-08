@@ -1,4 +1,6 @@
 
+import re
+import string
 import sqlite3
 import struct
 import os.path
@@ -96,7 +98,10 @@ class _MdxRecordBlock(_MdxRecordBlockBase):
 class MDictWriter(MDictWriterBase):
     def _build_offset_table(self, d):
         """One key own multi entry, so d is list"""
-        items = sorted(d, key=lambda x: locale.strxfrm(x['key']))
+        # sort following mdict standard
+        pattern = '[%s ]+' % string.punctuation
+        regex_strip = re.compile(pattern)
+        items = sorted(d, key=lambda x: regex_strip.sub('', x['key'].lower()))
 
         self._offset_table = []
         offset = 0
@@ -324,6 +329,39 @@ def pack_mdx_txt(source, encoding='UTF-8', callback=None):
                 else:
                     offset = f.tell()
 
+                line = f.readline()
+    return dictionary
+
+
+def pack_mdx_txt2(source, encoding='UTF-8'):
+    dictionary = {}
+    sources = []
+    if os.path.isfile(source):
+        sources.append(source)
+    else:
+        sources.extend([os.path.join(source, f) for f in os.listdir(source) if f.endswith('.txt')])
+    for source in sources:
+        with open(source, 'rt', encoding=encoding) as f:
+            key = None
+            count = 0
+            content = ''
+            line = f.readline()
+            while line:
+                count += 1
+                line = line.strip()
+                if not line:
+                    line = f.readline()
+                    continue
+                if line == '</>':
+                    if not key:
+                        raise ValueError('Error at line %s: %s' % (count, key))
+                    dictionary[key] = content
+                    key = None
+                    content = ''
+                elif not key:
+                    key = line
+                else:
+                    content += line
                 line = f.readline()
     return dictionary
 
