@@ -54,13 +54,8 @@ def run():
     if args.meta:
         with ElapsedTimer(verbose=True):
             meta = reader.meta(args.mdict)
-            'title' in meta and print('Title: %(title)s' % meta)
-            'generatedbyengineversion' in meta and print('Engine Version: %(generatedbyengineversion)s' % meta)
-            'record' in meta and print('Record: %(record)s' % meta)
-            'format' in meta and print('Format: %(format)s' % meta)
-            'encoding' in meta and print('Encoding: %(encoding)s' % meta)
-            'creationdate' in meta and print('Creation Date: %(creationdate)s' % meta)
-            'description' in meta and print('Description: %(description)s' % meta)
+            for k, v in meta.items():
+                print('%s: %s' % (k.title(), v))
     elif args.key:
         keys = reader.get_keys(args.mdict)
         count = 0
