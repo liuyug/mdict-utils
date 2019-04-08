@@ -101,7 +101,7 @@ class MDictWriter(MDictWriterBase):
         # sort following mdict standard
         pattern = '[%s ]+' % string.punctuation
         regex_strip = re.compile(pattern)
-        items = sorted(d, key=lambda x: regex_strip.sub('', x['key'].lower()))
+        items = sorted(d, key=lambda x: locale.strxfrm(regex_strip.sub('', x['key'].lower())))
 
         self._offset_table = []
         offset = 0
@@ -125,6 +125,13 @@ class MDictWriter(MDictWriterBase):
             ))
             offset += record['size']
         self._total_record_len = offset
+
+    def _build_key_blocks(self):
+        # Sets self._key_blocks to a list of _MdxKeyBlocks.
+        block_size = self._block_size
+        self._block_size = 32768
+        super(MDictWriter, self)._build_key_blocks()
+        self._block_size = block_size
 
     def _build_record_blocks(self):
         self._record_blocks = self._split_blocks(_MdxRecordBlock)
