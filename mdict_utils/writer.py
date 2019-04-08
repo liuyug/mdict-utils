@@ -21,6 +21,8 @@ def get_record_null(mdict_file, key, pos, size, encoding, is_mdd):
         if mdict_file.endswith('.db'):
             conn = sqlite3.connect(mdict_file)
             MDICT_OBJ[mdict_file] = conn
+        elif is_mdd:
+            MDICT_OBJ[mdict_file] = None
         else:
             f = open(mdict_file, 'rb')
             MDICT_OBJ[mdict_file] = f
@@ -33,7 +35,9 @@ def get_record_null(mdict_file, key, pos, size, encoding, is_mdd):
             record_null = row[0]
             return record_null
         else:
-            return open(mdict_file, 'rb').read()
+            assert(obj is None), 'MDD file error: %s' % mdict_file
+            with open(mdict_file, 'rb') as f:
+                return f.read()
     else:
         if mdict_file.endswith('.db'):
             sql = 'SELECT paraphrase FROM mdx WHERE entry=?'
