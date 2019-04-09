@@ -35,7 +35,7 @@ def run():
 
     group = parser.add_argument_group('Reader')
     group.add_argument('-x', dest='extract', action='store_true', help='extract mdx/mdd file.')
-    group.add_argument('-d', dest='exdir', help='extract mdx/mdd to directory')
+    group.add_argument('-d', dest='exdir', metavar='<exdir>', help='extract mdx/mdd to directory')
     group.add_argument('--exdb', action='store_true', help='extract mdx/mdd to DB')
     group.add_argument('--exdb-zip', action='store_true', help='extract mdx/mdd to DB with ZIP compress')
     group.add_argument('--split-n', metavar='<number>', help='split MDX TXT to N files')
@@ -46,6 +46,8 @@ def run():
     group.add_argument('--title', metavar='<title>', help='Dictionary title file')
     group.add_argument('--description', metavar='<description>', help='Dictionary descritpion file')
     group.add_argument('--encoding', metavar='<encoding>', default='utf-8', help='mdx txt file encoding')
+    group.add_argument('--key-size', metavar='<size>', type=int, default=32, help='Key block size. unit: KB')
+    group.add_argument('--record-size', metavar='<size>', type=int, default=64, help='Record block size. unit: KB')
 
     args = parser.parse_args()
 
@@ -117,7 +119,9 @@ def run():
             if args.description:
                 description = open(args.description, 'rt').read()
             print('Pack to "%s"' % args.mdict)
-            pack(args.mdict, dictionary, title, description, encoding=args.encoding, is_mdd=is_mdd)
+            pack(args.mdict, dictionary, title, description,
+                 key_size=args.key_size * 1024, record_size=args.record_size * 1024,
+                 encoding=args.encoding, is_mdd=is_mdd)
     else:
         parser.print_help()
 

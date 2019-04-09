@@ -96,6 +96,27 @@ class _MdxRecordBlock(_MdxRecordBlockBase):
 
 
 class MDictWriter(MDictWriterBase):
+    def __init__(self, d, title, description,
+                 key_size=32768, record_size=65536,
+                 encrypt_index=False,
+                 encoding="utf8",
+                 compression_type=2,
+                 version="2.0",
+                 encrypt_key=None,
+                 register_by=None,
+                 user_email=None,
+                 user_device_id=None,
+                 is_mdd=False):
+        self._key_block_size = key_size
+        self._record_block_size = record_size
+        super(MDictWriter, self).__init__(
+            d, title, description,
+            block_size=record_size, encrypt_index=encrypt_index,
+            encoding=encoding, compression_type=compression_type, version=version,
+            encrypt_key=encrypt_key, register_by=register_by,
+            user_email=user_email, user_device_id=user_device_id, is_mdd=False
+        )
+
     def _build_offset_table(self, d):
         """One key own multi entry, so d is list"""
         # sort following mdict standard
@@ -128,10 +149,9 @@ class MDictWriter(MDictWriterBase):
 
     def _build_key_blocks(self):
         # Sets self._key_blocks to a list of _MdxKeyBlocks.
-        block_size = self._block_size
-        self._block_size = 32768
+        self._block_size = self._key_block_size
         super(MDictWriter, self)._build_key_blocks()
-        self._block_size = block_size
+        self._block_size = self._record_block_size
 
     def _build_record_blocks(self):
         self._record_blocks = self._split_blocks(_MdxRecordBlock)
@@ -180,11 +200,16 @@ class MDictWriter(MDictWriterBase):
         self._write_record_sect(outfile, callback=callback)
 
 
-def pack(target, dictionary, title='', description='', encoding='UTF-8', is_mdd=False):
+def pack(target, dictionary, title='', description='',
+         key_size=32768, record_size=65536, encoding='UTF-8', is_mdd=False):
     def callback(value):
         bar.update(value)
 
-    writer = MDictWriter(dictionary, title=title, description=description, encoding=encoding, is_mdd=is_mdd)
+    writer = MDictWriter(
+        dictionary, title=title, description=description,
+        key_size=key_size, record_size=record_size,
+        encoding=encoding, is_mdd=is_mdd,
+    )
     bar = tqdm(total=len(writer._offset_table), unit='rec')
     outfile = open(target, "wb")
     writer.write(outfile, callback=callback)
