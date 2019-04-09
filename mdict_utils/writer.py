@@ -6,6 +6,8 @@ import struct
 import os.path
 import locale
 import zlib
+import datetime
+from cgi import escape
 
 from tqdm import tqdm
 
@@ -24,11 +26,11 @@ def get_record_null(mdict_file, key, pos, size, encoding, is_mdd):
             conn = sqlite3.connect(mdict_file)
             MDICT_OBJ[mdict_file] = conn
         elif is_mdd:
-            MDICT_OBJ[mdict_file] = None
+            pass
         else:
             f = open(mdict_file, 'rb')
             MDICT_OBJ[mdict_file] = f
-    obj = MDICT_OBJ[mdict_file]
+    obj = MDICT_OBJ.get(mdict_file)
     if is_mdd:
         if mdict_file.endswith('.db'):
             sql = 'SELECT file FROM mdd WHERE entry=?'
@@ -109,20 +111,22 @@ class MDictWriter(MDictWriterBase):
                  is_mdd=False):
         self._key_block_size = key_size
         self._record_block_size = record_size
+        # disable encrypt
         super(MDictWriter, self).__init__(
             d, title, description,
-            block_size=record_size, encrypt_index=encrypt_index,
+            block_size=record_size, encrypt_index=False,
             encoding=encoding, compression_type=compression_type, version=version,
-            encrypt_key=encrypt_key, register_by=register_by,
-            user_email=user_email, user_device_id=user_device_id, is_mdd=False
+            encrypt_key=None, register_by=None,
+            user_email=None, user_device_id=None, is_mdd=is_mdd
         )
 
-    def _build_offset_table(self, d):
+    def _build_offset_table(self, items):
         """One key own multi entry, so d is list"""
         # sort following mdict standard
         pattern = '[%s ]+' % string.punctuation
         regex_strip = re.compile(pattern)
-        items = sorted(d, key=lambda x: locale.strxfrm(regex_strip.sub('', x['key'].lower())))
+        items.sort(key=lambda x: locale.strxfrm(regex_strip.sub('', x['key'].lower())), reverse=True)
+        items.sort(key=lambda x: locale.strxfrm(regex_strip.sub('', x['key'].lower())))
 
         self._offset_table = []
         offset = 0
@@ -198,6 +202,70 @@ class MDictWriter(MDictWriterBase):
         self._write_header(outfile)
         self._write_key_sect(outfile)
         self._write_record_sect(outfile, callback=callback)
+
+    def _write_header(self, f):
+        # disable encrypt
+        encrypted = 0
+        register_by_str = ""
+        regcode = ""
+
+        if not self._is_mdd:
+            header_string = (
+                """<Dictionary """
+                """GeneratedByEngineVersion="{version}" """
+                """RequiredEngineVersion="{version}" """
+                """Encrypted="{encrypted}" """
+                """Encoding="{encoding}" """
+                """Format="Html" """
+                """Stripkey="Yes" """
+                """CreationDate="{date.year}-{date.month}-{date.day}" """
+                """Compact="No" """
+                """Compat="No" """
+                """KeyCaseSensitive="No" """
+                """Description="{description}" """
+                """Title="{title}" """
+                """DataSourceFormat="106" """
+                """StyleSheet="" """
+                """Left2Right="Yes" """
+                """RegisterBy="{register_by_str}" """
+                """RegCode="{regcode}"/>\r\n\x00""").format(
+                    version=self._version,
+                    encrypted=encrypted,
+                    encoding=self._encoding,
+                    date=datetime.date.today(),
+                    description=escape(self._description, quote=True),
+                    title=escape(self._title, quote=True),
+                    register_by_str=register_by_str,
+                    regcode=regcode).encode("utf_16_le")
+        else:
+            header_string = (
+                """<Library_Data """
+                """GeneratedByEngineVersion="{version}" """
+                """RequiredEngineVersion="{version}" """
+                """Encrypted="{encrypted}" """
+                """Encoding=" " """
+                """Format="" """
+                """CreationDate="{date.year}-{date.month}-{date.day}" """
+                """Compact="No" """
+                """Compat="No" """
+                """KeyCaseSensitive="No" """
+                """Stripkey="No" """
+                """Description="{description}" """
+                """Title="{title}" """
+                """DataSourceFormat="106" """
+                """StyleSheet="" """
+                """RegisterBy="{register_by_str}" """
+                """RegCode="{regcode}"/>\r\n\x00""").format(
+                    version=self._version,
+                    encrypted=encrypted,
+                    date=datetime.date.today(),
+                    description=escape(self._description, quote=True),
+                    title=escape(self._title, quote=True),
+                    register_by_str=register_by_str,
+                    regcode=regcode).encode("utf_16_le")
+        f.write(struct.pack(b">L", len(header_string)))
+        f.write(header_string)
+        f.write(struct.pack(b"<L", zlib.adler32(header_string) & 0xffffffff))
 
 
 def pack(target, dictionary, title='', description='',
