@@ -243,7 +243,7 @@ class MDictWriter(MDictWriterBase):
                 """GeneratedByEngineVersion="{version}" """
                 """RequiredEngineVersion="{version}" """
                 """Encrypted="{encrypted}" """
-                """Encoding=" " """
+                """Encoding="" """
                 """Format="" """
                 """CreationDate="{date.year}-{date.month}-{date.day}" """
                 """Compact="No" """
