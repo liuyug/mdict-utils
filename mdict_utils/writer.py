@@ -205,9 +205,9 @@ class MDictWriter(MDictWriterBase):
 
     def _write_header(self, f):
         # disable encrypt
-        encrypted = 0
+        encrypted = "No"
         register_by_str = ""
-        regcode = ""
+        # regcode = ""
 
         if not self._is_mdd:
             header_string = (
@@ -219,8 +219,8 @@ class MDictWriter(MDictWriterBase):
                 """Format="Html" """
                 """Stripkey="Yes" """
                 """CreationDate="{date.year}-{date.month}-{date.day}" """
-                """Compact="No" """
-                """Compat="No" """
+                """Compact="Yes" """
+                """Compat="Yes" """
                 """KeyCaseSensitive="No" """
                 """Description="{description}" """
                 """Title="{title}" """
@@ -228,15 +228,18 @@ class MDictWriter(MDictWriterBase):
                 """StyleSheet="" """
                 """Left2Right="Yes" """
                 """RegisterBy="{register_by_str}" """
-                """RegCode="{regcode}"/>\r\n\x00""").format(
-                    version=self._version,
-                    encrypted=encrypted,
-                    encoding=self._encoding,
-                    date=datetime.date.today(),
-                    description=escape(self._description, quote=True),
-                    title=escape(self._title, quote=True),
-                    register_by_str=register_by_str,
-                    regcode=regcode).encode("utf_16_le")
+                # """RegCode="{regcode}" """
+                """/>\r\n\x00"""
+            ).format(
+                version=self._version,
+                encrypted=encrypted,
+                encoding=self._encoding,
+                date=datetime.date.today(),
+                description=escape(self._description, quote=True),
+                title=escape(self._title, quote=True),
+                register_by_str=register_by_str,
+                # regcode=regcode,
+            ).encode("utf_16_le")
         else:
             header_string = (
                 """<Library_Data """
@@ -246,23 +249,26 @@ class MDictWriter(MDictWriterBase):
                 """Encoding="" """
                 """Format="" """
                 """CreationDate="{date.year}-{date.month}-{date.day}" """
-                """Compact="No" """
-                """Compat="No" """
+                # """Compact="No" """
+                # """Compat="No" """
                 """KeyCaseSensitive="No" """
                 """Stripkey="No" """
                 """Description="{description}" """
                 """Title="{title}" """
-                """DataSourceFormat="106" """
-                """StyleSheet="" """
+                # """DataSourceFormat="106" """
+                # """StyleSheet="" """
                 """RegisterBy="{register_by_str}" """
-                """RegCode="{regcode}"/>\r\n\x00""").format(
-                    version=self._version,
-                    encrypted=encrypted,
-                    date=datetime.date.today(),
-                    description=escape(self._description, quote=True),
-                    title=escape(self._title, quote=True),
-                    register_by_str=register_by_str,
-                    regcode=regcode).encode("utf_16_le")
+                # """RegCode="{regcode}" """
+                """/>\r\n\x00"""
+            ).format(
+                version=self._version,
+                encrypted=encrypted,
+                date=datetime.date.today(),
+                description=escape(self._description, quote=True),
+                title=escape(self._title, quote=True),
+                register_by_str=register_by_str,
+                # regcode=regcode
+            ).encode("utf_16_le")
         f.write(struct.pack(b">L", len(header_string)))
         f.write(header_string)
         f.write(struct.pack(b"<L", zlib.adler32(header_string) & 0xffffffff))

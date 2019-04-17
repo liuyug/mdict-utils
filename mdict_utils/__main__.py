@@ -57,7 +57,7 @@ def run():
         with ElapsedTimer(verbose=True):
             meta = reader.meta(args.mdict)
             for k, v in meta.items():
-                print('%s: %s' % (k.title(), v))
+                print('%s: "%s"' % (k.title(), v))
     elif args.key:
         keys = reader.get_keys(args.mdict)
         count = 0
