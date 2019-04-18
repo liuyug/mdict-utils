@@ -4,6 +4,7 @@ import string
 import sqlite3
 import struct
 import os.path
+import functools
 import locale
 import zlib
 import datetime
@@ -122,11 +123,37 @@ class MDictWriter(MDictWriterBase):
 
     def _build_offset_table(self, items):
         """One key own multi entry, so d is list"""
-        # sort following mdict standard
+        def mdict_cmp(item1, item2):
+            # sort following mdict standard
+            key1 = item1['key'].lower()
+            key2 = item2['key'].lower()
+            if not self._is_mdd:
+                key1 = regex_strip.sub('', key1)
+                key2 = regex_strip.sub('', key2)
+            # locale key
+            key1 = locale.strxfrm(key1)
+            key2 = locale.strxfrm(key2)
+            if key1 > key2:
+                return 1
+            elif key1 < key2:
+                return -1
+            # reverse
+            if len(key1) > len(key2):
+                return -1
+            elif len(key1) < len(key2):
+                return 1
+            key1 = key1.rstrip(string.punctuation)
+            key2 = key2.rstrip(string.punctuation)
+            if key1 > key2:
+                return -1
+            elif key1 < key2:
+                return 1
+            return 0
+
         pattern = '[%s ]+' % string.punctuation
         regex_strip = re.compile(pattern)
-        items.sort(key=lambda x: locale.strxfrm(regex_strip.sub('', x['key'].lower())), reverse=True)
-        items.sort(key=lambda x: locale.strxfrm(regex_strip.sub('', x['key'].lower())))
+
+        items.sort(key=functools.cmp_to_key(mdict_cmp))
 
         self._offset_table = []
         offset = 0
