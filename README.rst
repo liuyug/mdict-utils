@@ -32,6 +32,10 @@ Query key::
 
     mdict -q <word> dict.mdx
 
+.. note::
+
+    只用于测试词典打包是否正确。
+
 Unpack
 ------
 Unpack MDX::
