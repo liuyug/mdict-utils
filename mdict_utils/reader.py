@@ -183,6 +183,8 @@ def unpack(target, source, split=None, substyle=False, passcode=None):
         item_count = 0
         part_count = 1
         for key, value in mdx.items():
+            if not value.strip():
+                continue
             item_count += 1
             if not split:
                 tf = out_objs.get('all')
@@ -271,6 +273,8 @@ def unpack_to_db(target, source, encoding='', substyle=False, passcode=None, zip
             count = 0
             entries = []
             for key, value in mdx.items():
+                if not value.strip():
+                    continue
                 count += 1
                 key = key.decode(mdx._encoding)
                 if zip:
