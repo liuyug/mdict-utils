@@ -422,6 +422,7 @@ def pack_mdd_db(source, callback=None):
 
 
 def pack_mdx_txt(source, encoding='UTF-8', callback=None):
+    """return LIST data."""
     dictionary = []
     sources = []
     null_length = len('\0'.encode(encoding))
@@ -467,6 +468,7 @@ def pack_mdx_txt(source, encoding='UTF-8', callback=None):
 
 
 def pack_mdx_txt2(source, encoding='UTF-8'):
+    """return DICT data. entry is key"""
     dictionary = {}
     sources = []
     if os.path.isfile(source):
