@@ -1,6 +1,6 @@
 
 name = 'mdict-utils'
-version = '1.0.8.3'
+version = '1.0.8.4'
 author = 'Yugang LIU'
 email = 'liuyug@gmail.com'
 url = 'https://github.com/liuyug/mdict-utils.git'
