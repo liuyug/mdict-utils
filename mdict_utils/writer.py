@@ -8,7 +8,7 @@ import functools
 import locale
 import zlib
 import datetime
-from cgi import escape
+from html import escape
 
 from tqdm import tqdm
 

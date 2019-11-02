@@ -4,7 +4,7 @@ from mdict_utils import about
 from setuptools import setup, find_packages
 
 
-with open('README.rst') as f:
+with open('README.rst', encoding='utf-8') as f:
     long_description = f.read()
 
 requirements = []
