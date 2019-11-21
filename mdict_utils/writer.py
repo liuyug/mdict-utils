@@ -441,11 +441,13 @@ def pack_mdx_txt(source, encoding='UTF-8', callback=None):
                 count += 1
                 line = line.strip()
                 if not line:
+                    if not key:
+                        raise ValueError('Error at line %s: %s' % (count, source))
                     line = f.readline()
                     continue
                 if line == b'</>':
                     if not key or offset == pos:
-                        raise ValueError('Error at line %s: %s' % (count, key))
+                        raise ValueError('Error at line %s: %s' % (count, source))
                     # calculate content length including \r\n.
                     # readline will filter \r\n
                     size = offset - pos + null_length
