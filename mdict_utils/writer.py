@@ -52,6 +52,7 @@ def get_record_null(mdict_file, key, pos, size, encoding, is_mdd):
                 if len(record_null) == size:
                     return record_null
         else:
+            assert size > 1, key
             obj.seek(pos)
             record_null = obj.read(size - 1)
             return record_null + b'\0'
