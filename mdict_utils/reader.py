@@ -184,6 +184,7 @@ def unpack(target, source, split=None, substyle=False, passcode=None):
         part_count = 1
         for key, value in mdx.items():
             if not value.strip():
+                bar.write('Skip entry: %s' % key)
                 continue
             item_count += 1
             if not split:
