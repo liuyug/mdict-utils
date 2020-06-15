@@ -49,6 +49,9 @@ def run():
     group.add_argument('--key-size', metavar='<size>', type=int, default=32, help='Key block size. unit: KB')
     group.add_argument('--record-size', metavar='<size>', type=int, default=64, help='Record block size. unit: KB')
 
+    group = parser.add_argument_group('Compact HTML')
+    group.add_argument('--chtml', action='store_true', help='disable compact html convert.')
+
     args = parser.parse_args()
 
     global total
@@ -91,7 +94,7 @@ def run():
                     split = args.split_n
                 else:
                     split = None
-                reader.unpack(args.exdir, args.mdict, split=split)
+                reader.unpack(args.exdir, args.mdict, split=split, chtml=args.chtml)
     elif args.add:
         with ElapsedTimer(verbose=True):
             is_mdd = args.mdict.endswith('.mdd')

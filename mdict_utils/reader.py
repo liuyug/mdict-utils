@@ -7,6 +7,7 @@ import zlib
 from tqdm import tqdm
 
 from .base.readmdict import MDX, MDD
+from .chtml import CompactHTML
 
 
 def meta(source, substyle=False, passcode=None):
@@ -147,7 +148,7 @@ def query(source, word, substyle=False, passcode=None):
     return '\n---\n'.join(record)
 
 
-def unpack(target, source, split=None, substyle=False, passcode=None):
+def unpack(target, source, split=None, chtml=False, substyle=False, passcode=None):
     target = target or './'
     if not os.path.exists(target):
         os.makedirs(target)
@@ -156,7 +157,29 @@ def unpack(target, source, split=None, substyle=False, passcode=None):
         mdx = MDX(source, encoding, substyle, passcode)
         bar = tqdm(total=len(mdx), unit='rec')
         basename = os.path.basename(source)
+        # write header
+        chtml_converter = None
+        if mdx.header.get(b'StyleSheet'):
+            style_fname = os.path.join(target, basename + '.stylesheet')
+            sf = open(style_fname, 'wb')
+            b_content = b'\r\n'.join(mdx.header[b'StyleSheet'].splitlines())
+            sf.write(b_content)
+            sf.close()
+            chtml_converter = CompactHTML(b_content)
+        # write description
+        if mdx.header.get(b'Description'):
+            fname = os.path.join(target, basename + '.description.html')
+            f = open(fname, 'wb')
+            f.write(b'\r\n'.join(mdx.header[b'Description'].splitlines()))
+            f.close()
+        if mdx.header.get(b'Title'):
+            # MDX will be unpacked as TXT, rename to HTML
+            fname = os.path.join(target, basename + '.title.html')
+            f = open(fname, 'wb')
+            f.write(mdx.header[b'Title'])
+            f.close()
 
+        # content
         out_objs = {}
         if not split:       # no split
             part = len(mdx)
@@ -198,32 +221,16 @@ def unpack(target, source, split=None, substyle=False, passcode=None):
                 tf = out_objs.get(part_count)
             tf.write(key)
             tf.write(b'\r\n')
+            if not chtml and chtml_converter:
+                value = chtml_converter.to_html(value)
             tf.write(value)
             if not value.endswith(b'\n'):
                 tf.write(b'\r\n')
             tf.write(b'</>\r\n')
             bar.update(1)
+        bar.close()
         for obj in out_objs.values():
             obj.close()
-        bar.close()
-        # write header
-        if mdx.header.get(b'StyleSheet'):
-            style_fname = os.path.join(target, basename + '.stylesheet')
-            sf = open(style_fname, 'wb')
-            sf.write(b'\r\n'.join(mdx.header[b'StyleSheet'].splitlines()))
-            sf.close()
-        # write description
-        if mdx.header.get(b'Description'):
-            fname = os.path.join(target, basename + '.description.html')
-            f = open(fname, 'wb')
-            f.write(b'\r\n'.join(mdx.header[b'Description'].splitlines()))
-            f.close()
-        if mdx.header.get(b'Title'):
-            # MDX will be unpacked as TXT, rename to HTML
-            fname = os.path.join(target, basename + '.title.html')
-            f = open(fname, 'wb')
-            f.write(mdx.header[b'Title'])
-            f.close()
     elif source.endswith('.mdd'):
         datafolder = os.path.abspath(target)
         if not os.path.exists(datafolder):
