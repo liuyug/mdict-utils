@@ -148,7 +148,7 @@ def query(source, word, substyle=False, passcode=None):
     return '\n---\n'.join(record)
 
 
-def unpack(target, source, split=None, chtml=False, substyle=False, passcode=None):
+def unpack(target, source, split=None, convert_chtml=False, substyle=False, passcode=None):
     target = target or './'
     if not os.path.exists(target):
         os.makedirs(target)
@@ -159,7 +159,7 @@ def unpack(target, source, split=None, chtml=False, substyle=False, passcode=Non
         basename = os.path.basename(source)
         # write header
         chtml_converter = None
-        if mdx.header.get(b'StyleSheet'):
+        if convert_chtml and mdx.header.get(b'StyleSheet'):
             style_fname = os.path.join(target, basename + '.stylesheet')
             sf = open(style_fname, 'wb')
             b_content = b'\r\n'.join(mdx.header[b'StyleSheet'].splitlines())
@@ -221,7 +221,7 @@ def unpack(target, source, split=None, chtml=False, substyle=False, passcode=Non
                 tf = out_objs.get(part_count)
             tf.write(key)
             tf.write(b'\r\n')
-            if not chtml and chtml_converter:
+            if convert_chtml and chtml_converter:
                 value = chtml_converter.to_html(value)
             tf.write(value)
             if not value.endswith(b'\n'):

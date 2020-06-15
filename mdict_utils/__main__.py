@@ -50,7 +50,7 @@ def run():
     group.add_argument('--record-size', metavar='<size>', type=int, default=64, help='Record block size. unit: KB')
 
     group = parser.add_argument_group('Compact HTML')
-    group.add_argument('--chtml', action='store_true', help='disable compact html convert.')
+    group.add_argument('--convert-chtml', action='store_true', help='convert compact html.')
 
     args = parser.parse_args()
 
@@ -94,7 +94,7 @@ def run():
                     split = args.split_n
                 else:
                     split = None
-                reader.unpack(args.exdir, args.mdict, split=split, chtml=args.chtml)
+                reader.unpack(args.exdir, args.mdict, split=split, convert_chtml=args.convert_chtml)
     elif args.add:
         with ElapsedTimer(verbose=True):
             is_mdd = args.mdict.endswith('.mdd')
