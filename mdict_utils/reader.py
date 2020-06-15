@@ -208,7 +208,7 @@ def unpack(target, source, split=None, substyle=False, passcode=None):
         bar.close()
         # write header
         if mdx.header.get(b'StyleSheet'):
-            style_fname = os.path.join(target, basename + '.css')
+            style_fname = os.path.join(target, basename + '.stylesheet')
             sf = open(style_fname, 'wb')
             sf.write(b'\r\n'.join(mdx.header[b'StyleSheet'].splitlines()))
             sf.close()
