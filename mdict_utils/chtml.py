@@ -37,4 +37,5 @@ class CompactHTML():
             html.append(self._css[m.group(1)][0])
             last_end_tag = self._css[m.group(1)][1]
             pos = m.end()
+        html.append(last_end_tag)
         return b''.join(html)
