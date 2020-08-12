@@ -8,6 +8,9 @@ MDict pack/unpack tool
 
     Support MIT and 996.icu license
 
+    All files must be UTF-8 encoding, include HTML and TXT
+
+
 Install
 =======
 ::
