@@ -27,10 +27,6 @@ All key list::
 
     mdict -k dict.mdx
 
-All key list::
-
-    mdict -k dict.mdx
-
 Query key::
 
     mdict -q <word> dict.mdx
