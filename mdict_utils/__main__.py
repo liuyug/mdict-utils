@@ -118,9 +118,9 @@ def run():
             title = ''
             description = ''
             if args.title:
-                title = open(args.title, 'rt').read().strip()
+                title = open(args.title, 'rt', encoding='utf-8').read().strip()
             if args.description:
-                description = open(args.description, 'rt').read().strip()
+                description = open(args.description, 'rt', encoding='utf-8').read().strip()
             print('Pack to "%s"' % args.mdict)
             pack(args.mdict, dictionary, title, description,
                  key_size=args.key_size * 1024, record_size=args.record_size * 1024,
