@@ -422,7 +422,7 @@ def pack_mdd_db(source, callback=None):
     return dictionary
 
 
-def pack_mdx_txt(source, encoding='UTF-8', callback=None):
+def pack_mdx_txt(source, encoding='UTF-8', callback=None, keys=None):
     """return LIST data."""
     dictionary = []
     sources = []
@@ -452,12 +452,14 @@ def pack_mdx_txt(source, encoding='UTF-8', callback=None):
                     # calculate content length including \r\n.
                     # readline will filter \r\n
                     size = offset - pos + null_length
-                    dictionary.append({
-                        'key': key.decode(encoding),
-                        'pos': pos,
-                        'path': source,
-                        'size': size,
-                    })
+                    key = key.decode(encoding)
+                    if not keys or key in keys:
+                        dictionary.append({
+                            'key': key,
+                            'pos': pos,
+                            'path': source,
+                            'size': size,
+                        })
                     key = None
                     callback and callback(1)
                 elif not key:

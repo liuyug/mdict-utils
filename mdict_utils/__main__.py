@@ -1,5 +1,6 @@
 import os.path
 import argparse
+import csv
 
 from . import about
 from . import reader
@@ -48,6 +49,7 @@ def run():
     group.add_argument('--encoding', metavar='<encoding>', default='utf-8', help='mdx txt file encoding')
     group.add_argument('--key-size', metavar='<size>', type=int, default=32, help='Key block size. unit: KB')
     group.add_argument('--record-size', metavar='<size>', type=int, default=64, help='Record block size. unit: KB')
+    group.add_argument('--key-file', metavar='<key file>', help='only pack some keys in the file')
 
     group = parser.add_argument_group('Compact HTML')
     group.add_argument('--convert-chtml', action='store_true', help='convert compact html.')
@@ -97,6 +99,12 @@ def run():
                 reader.unpack(args.exdir, args.mdict, split=split, convert_chtml=args.convert_chtml)
     elif args.add:
         with ElapsedTimer(verbose=True):
+            keys = []
+            if args.key_file:
+                with open(args.key_file, 'rt', newline='', encoding='utf-8') as f_csv:
+                    csv_reader = csv.reader(f_csv)
+                    for row in csv_reader:
+                        keys.append(row[0])
             is_mdd = args.mdict.endswith('.mdd')
             dictionary = []
             for resource in args.add:
@@ -111,7 +119,7 @@ def run():
                     if resource.endswith('.db'):
                         d = pack_mdx_db(resource, encoding=args.encoding, callback=make_callback(fmt))
                     else:
-                        d = pack_mdx_txt(resource, encoding=args.encoding, callback=make_callback(fmt))
+                        d = pack_mdx_txt(resource, encoding=args.encoding, callback=make_callback(fmt), keys=keys)
                 dictionary.extend(d)
                 print()
             print()
