@@ -82,8 +82,11 @@ def run():
             db2txt(args.mdict, callback=make_callback(fmt))
             print()
     elif args.query:
+        # fix dash prefix in shell enviroment
+        # mdict -q "\-ment" xxxx.mdx
+        query = args.query[1:] if args.query[0] == '\\' else args.query
         with ElapsedTimer(verbose=True):
-            record = reader.query(args.mdict, args.query)
+            record = reader.query(args.mdict, query)
             print(record)
     elif args.extract:
         with ElapsedTimer(verbose=True):
