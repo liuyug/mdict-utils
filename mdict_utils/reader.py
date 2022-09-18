@@ -53,6 +53,45 @@ def get_keys(source, substyle=False, passcode=None):
 
 
 def get_record(md, key, offset, length):
+    if md._version >= 3:
+        return get_record_v3(md, key, offset, length)
+    else:
+        return get_record_v1v2(md, key, offset, length)
+
+
+def get_record_v3(md, key, offset, length):
+    f = open(md._fname, 'rb')
+    f.seek(md._record_block_offset)
+
+    num_record_blocks = md._read_int32(f)
+    num_bytes = md._read_number(f)
+
+    decompressed_offset = 0
+    for j in range(num_record_blocks):
+        decompressed_size = md._read_int32(f)
+        compressed_size = md._read_int32(f)
+
+        if (decompressed_offset + decompressed_size) > offset:
+            break
+        decompressed_offset += decompressed_size
+        f.seek(compressed_size, 1)
+
+    block_compressed = f.read(compressed_size)
+    record_block = md._decode_block(block_compressed, decompressed_size)
+
+    record_start = offset - decompressed_offset
+    if length > 0:
+        record_null = record_block[record_start:record_start + length]
+    else:
+        record_null = record_block[record_start:]
+    f.close()
+    if md._fname.endswith('.mdd'):
+        return record_null
+    else:
+        return record_null.strip().decode(md._encoding)
+
+
+def get_record_v1v2(md, key, offset, length):
     f = open(md._fname, 'rb')
     f.seek(md._record_block_offset)
 

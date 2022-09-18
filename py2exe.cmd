@@ -25,6 +25,7 @@ pyinstaller ^
 --console ^
 %script%
 
+rem --log-level=DEBUG ^
 call ..\env_noqt\Scripts\deactivate
 
 del *.spec

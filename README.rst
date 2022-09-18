@@ -6,7 +6,9 @@ MDict pack/unpack tool
 
 .. NOTE::
 
-    Support MIT and 996.icu license
+    Support Reading with MDict Version 3.0
+
+    Support Reading and Writing with MDict Version 2.0
 
     All files must be UTF-8 encoding, include HTML and TXT
 
