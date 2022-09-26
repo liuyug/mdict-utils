@@ -28,8 +28,14 @@ pyinstaller ^
 rem --log-level=DEBUG ^
 call ..\env_noqt\Scripts\deactivate
 
-del *.spec
-
-endlocal
 
 dist\mdict.exe --version
+
+cd dist
+del mdict-win32.7z /q
+set c7z="C:\Program Files\7-Zip\7z.exe"
+%c7z% a mdict-win32.7z mdict.exe
+cd ..
+
+del *.spec
+endlocal
