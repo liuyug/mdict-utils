@@ -34,8 +34,8 @@ def get_record_null(mdict_file, key, pos, size, encoding, is_mdd):
     obj = MDICT_OBJ.get(mdict_file)
     if is_mdd:
         if mdict_file.endswith('.db'):
-            sql = 'SELECT file FROM mdd WHERE entry=?'
-            c = obj.execute(sql, (key,))
+            sql = 'SELECT file FROM mdd WHERE rowid=?'
+            c = obj.execute(sql, (pos,))
             row = c.fetchone()
             record_null = row[0]
             return record_null
@@ -45,8 +45,8 @@ def get_record_null(mdict_file, key, pos, size, encoding, is_mdd):
                 return f.read()
     else:
         if mdict_file.endswith('.db'):
-            sql = 'SELECT paraphrase FROM mdx WHERE entry=?'
-            c = obj.execute(sql, (key,))
+            sql = 'SELECT paraphrase FROM mdx WHERE rowid=?'
+            c = obj.execute(sql, (pos,))
             for row in c.fetchall():    # multi entry
                 record_null = (row[0] + '\0').encode(encoding)
                 if len(record_null) == size:
@@ -392,13 +392,13 @@ def db2txt(source, encoding='UTF-8', zip=False, callback=None):
 
 def pack_mdx_db(source, encoding='UTF-8', callback=None):
     dictionary = []
-    sql = 'SELECT entry, paraphrase FROM mdx'
+    sql = 'SELECT entry, paraphrase, rowid FROM mdx'
     with sqlite3.connect(source) as conn:
         cur = conn.execute(sql)
         for c in cur:
             dictionary.append({
                 'key': c[0],
-                'pos': 0,
+                'pos': c[2],
                 'path': source,
                 'size': len((c[1] + '\0').encode(encoding)),
             })
@@ -408,13 +408,13 @@ def pack_mdx_db(source, encoding='UTF-8', callback=None):
 
 def pack_mdd_db(source, callback=None):
     dictionary = []
-    sql = 'SELECT entry, LENGTH(file) FROM mdd'
+    sql = 'SELECT entry, LENGTH(file), rowid FROM mdd'
     with sqlite3.connect(source) as conn:
         cur = conn.execute(sql)
         for c in cur:
             dictionary.append({
                 'key': c[0],
-                'pos': 0,
+                'pos': c[2],
                 'path': source,
                 'size': c[1],
             })
