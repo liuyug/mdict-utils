@@ -101,6 +101,7 @@ Reference
 
 Donate 捐赠
 =============
+请捐赠者在 issue 里留下捐赠信息，如交易流水号等，否则无法在支付系统里查找。再次感谢。
 
 .. image:: alipay_pay.jpg
     :width: 45%
