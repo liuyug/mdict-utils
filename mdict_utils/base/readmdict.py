@@ -3,7 +3,7 @@
 # readmdict.py
 # Octopus MDict Dictionary File (.mdx) and Resource File (.mdd) Analyser
 #
-# Copyright (C) 2012, 2013, 2015, 2022 Xiaoqiang Wang <xiaoqiangwang AT gmail DOT com>
+# Copyright (C) 2012, 2013, 2015, 2022, 2023 Xiaoqiang Wang <xiaoqiangwang AT gmail DOT com>
 #
 # This program is a free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -29,7 +29,7 @@ from .pureSalsa20 import Salsa20
 import zlib
 # LZO compression is used for engine version < 2.0
 try:
-    from . import lzo
+    import lzo
 except ImportError:
     lzo = None
 
@@ -103,13 +103,14 @@ class MDict(object):
             if isinstance(userid, unicode):
                 userid = userid.encode('utf8')
             self._encrypted_key = _decrypt_regcode_by_userid(regcode, userid)
-        # MDict 3.0 encryption key derives from UUID
+        # MDict 3.0 encryption key derives from UUID if present
         elif self._version >= 3.0:
-            if xxhash is None:
-                raise RuntimeError('xxhash module is needed to read MDict 3.0 format')
-            uuid = self.header[b'UUID']
-            mid = (len(uuid) + 1) // 2
-            self._encrypted_key = xxhash.xxh64_digest(uuid[:mid]) + xxhash.xxh64_digest(uuid[mid:])
+            uuid = self.header.get(b'UUID')
+            if uuid:
+                if xxhash is None:
+                    raise RuntimeError('xxhash module is needed to read MDict 3.0 format')
+                mid = (len(uuid) + 1) // 2
+                self._encrypted_key = xxhash.xxh64_digest(uuid[:mid]) + xxhash.xxh64_digest(uuid[mid:])
 
         self._key_list = self._read_keys()
 
@@ -135,7 +136,7 @@ class MDict(object):
         """
         extract attributes from <Dict attr="value" ... >
         """
-        taglist = re.findall(b'(\w+)="(.*?)"', header, re.DOTALL)
+        taglist = re.findall(rb'(\w+)="(.*?)"', header, re.DOTALL)
         tagdict = {}
         for key, value in taglist:
             tagdict[key] = _unescape_entities(value)
@@ -189,7 +190,7 @@ class MDict(object):
             assert(hex(adler32) == hex(zlib.adler32(decompressed_block) & 0xffffffff))
 
         return decompressed_block
-
+    
     def _decode_key_block_info(self, key_block_info_compressed):
         if self._version >= 2:
             # zlib compression
@@ -332,8 +333,8 @@ class MDict(object):
         # store stylesheet in dict in the form of
         # {'number' : ('style_begin', 'style_end')}
         self._stylesheet = {}
-        if header_tag.get('StyleSheet'):
-            lines = header_tag['StyleSheet'].splitlines()
+        if header_tag.get(b'StyleSheet'):
+            lines = header_tag[b'StyleSheet'].splitlines()
             for i in range(0, len(lines), 3):
                 self._stylesheet[lines[i]] = (lines[i+1], lines[i+2])
 
@@ -514,6 +515,10 @@ class MDict(object):
             yield from self._read_records_v1v2()
 
     def _read_records_v3(self):
+
+        # record index has redudant information about block compressed/decompresed size
+        record_index = self._read_record_index()
+
         f = open(self._fname, 'rb')
         f.seek(self._record_block_offset)
 
@@ -526,6 +531,16 @@ class MDict(object):
         for j in range(num_record_blocks):
             decompressed_size = self._read_int32(f)
             compressed_size = self._read_int32(f)
+
+            # check against the record index information
+            if (compressed_size + 8, decompressed_size) != record_index[j]:
+                compressed_size = record_index[j][0] - 8
+                decompressed_size = record_index[j][1]
+                # skip to the next block
+                print('Skip (potentially) damaged record block')
+                f.read(compressed_size)
+                continue
+
             record_block = self._decode_block(f.read(compressed_size), decompressed_size)
 
             # split record block according to the offset info from key block
@@ -592,6 +607,29 @@ class MDict(object):
 
         f.close()
 
+    def _read_record_index(self):
+        f = open(self._fname, 'rb')
+
+        f.seek(self._record_index_offset)
+        num_record_blocks = self._read_int32(f)
+        num_bytes = self._read_number(f)
+
+        record_index = []
+        for i in range(num_record_blocks):
+            decompressed_size = self._read_int32(f)
+            compressed_size = self._read_int32(f)
+            record_block = self._decode_block(f.read(compressed_size), decompressed_size)
+            if len(record_block) % 16 != 0:
+                raise Exception('record index block has invalid size %d' % len(record_block))
+
+            j = 0
+            while j < len(record_block):
+                block_size, decompressed_size = unpack('>QQ', record_block[j:j+16])
+                record_index.append((block_size, decompressed_size))
+                j += 16
+        f.close()
+        return record_index
+
     def _treat_record_data(self, data):
         return data
 
@@ -624,8 +662,8 @@ class MDX(MDict):
 
     def _substitute_stylesheet(self, txt):
         # substitute stylesheet definition
-        txt_list = re.split('`\d+`', txt)
-        txt_tag = re.findall('`\d+`', txt)
+        txt_list = re.split(rb'`\d+`', txt)
+        txt_tag = re.findall(rb'`\d+`', txt)
         txt_styled = txt_list[0]
         for j, p in enumerate(txt_list[1:]):
             style = self._stylesheet[txt_tag[j][1:-1]]
@@ -670,7 +708,7 @@ if __name__ == '__main__':
     parser.add_argument('-d', '--datafolder', default="data",
                         help='folder to extract data files from mdd')
     parser.add_argument('-e', '--encoding', default="",
-                        help='folder to extract data files from mdd')
+                        help='override the encoding specified in the mdx file')
     parser.add_argument('-p', '--passcode', default=None, type=passcode,
                         help='register_code,email_or_deviceid')
     parser.add_argument("filename", nargs='?', help="mdx file name")
@@ -708,20 +746,26 @@ if __name__ == '__main__':
     else:
         mdx = None
 
-    # find companion mdd file
-    mdd_filename = ''.join([base, os.path.extsep, 'mdd'])
-    if os.path.exists(mdd_filename):
-        mdd = MDD(mdd_filename, args.passcode)
-        if type(mdd_filename) is unicode:
-            bfname = mdd_filename.encode('utf-8')
+    # find companion mdd file(s)
+    i = 0
+    mdds = []
+    while True:
+        extra = '' if i == 0 else '.%d' % i
+        mdd_filename = ''.join([base, extra, os.path.extsep, 'mdd'])
+        if os.path.exists(mdd_filename):
+            mdd = MDD(mdd_filename, args.passcode)
+            if type(mdd_filename) is unicode:
+                bfname = mdd_filename.encode('utf-8')
+            else:
+                bfname = mdd_filename
+            print('======== %s ========' % bfname)
+            print('  Number of Entries : %d' % len(mdd))
+            for key, value in mdd.header.items():
+                print('  %s : %s' % (key, value))
+            mdds.append(mdd)
         else:
-            bfname = mdd_filename
-        print('======== %s ========' % bfname)
-        print('  Number of Entries : %d' % len(mdd))
-        for key, value in mdd.header.items():
-            print('  %s : %s' % (key, value))
-    else:
-        mdd = None
+            break
+        i += 1
 
     if args.extract:
         # write out glos
@@ -737,21 +781,22 @@ if __name__ == '__main__':
                 tf.write(b'</>\r\n')
             tf.close()
             # write out style
-            if mdx.header.get('StyleSheet'):
+            if mdx.header.get(b'StyleSheet'):
                 style_fname = ''.join([base, '_style', os.path.extsep, 'txt'])
                 sf = open(style_fname, 'wb')
-                sf.write(b'\r\n'.join(mdx.header['StyleSheet'].splitlines()))
+                sf.write(b'\r\n'.join(mdx.header[b'StyleSheet'].splitlines()))
                 sf.close()
         # write out optional data files
-        if mdd:
+        if mdds:
             datafolder = os.path.join(os.path.dirname(args.filename), args.datafolder)
             if not os.path.exists(datafolder):
                 os.makedirs(datafolder)
-            for key, value in mdd.items():
-                fname = key.decode('utf-8').replace('\\', os.path.sep)
-                dfname = datafolder + fname
-                if not os.path.exists(os.path.dirname(dfname)):
-                    os.makedirs(os.path.dirname(dfname))
-                df = open(dfname, 'wb')
-                df.write(value)
-                df.close()
+            for mdd in mdds:
+                for key, value in mdd.items():
+                    fname = key.decode('utf-8').replace('\\', os.path.sep)
+                    dfname = datafolder + fname
+                    if not os.path.exists(os.path.dirname(dfname)):
+                        os.makedirs(os.path.dirname(dfname))
+                    df = open(dfname, 'wb')
+                    df.write(value)
+                    df.close()
